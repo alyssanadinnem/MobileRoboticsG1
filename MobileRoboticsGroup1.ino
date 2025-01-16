@@ -6,7 +6,7 @@ int motor2Phase = 20;
 
 //OPTICAL SENSOR 
 int AnalogValue[5] = {0,0,0,0,0};
-int AnalogPin[5] = {4,5,6,7,15};
+int AnalogPin[5] = {5,4,6,7,15};
 
 // the setup routine runs once when you press reset:
 void setup() {
