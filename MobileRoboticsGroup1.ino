@@ -1,7 +1,7 @@
 //MOTOR
-int motor1PWM = 37;
+int motor1PWM = 37; //left wheel - 1
 int motor1Phase = 38;
-int motor2PWM = 39;
+int motor2PWM = 39; //right wheel - 2
 int motor2Phase = 20;
 
 //OPTICAL SENSOR 
@@ -46,7 +46,18 @@ void loop() {
         delay(100); // display new set of readings every 600mS
       }
   }
-} 
+
+  GoForward();
+  delay(2000);
+  GoRight();
+  delay(2000);
+  GoLeft();
+  delay(2000);
+  GoBackwards();
+  delay(2000);
+  Stop();
+  delay(2000);
+}
 
 void GoForward() {
   digitalWrite(motor1Phase, HIGH); //forward
@@ -57,6 +68,20 @@ void GoForward() {
   Serial.println("Forward"); // Display motor direction
 }
 
+void GoRight() {
+  digitalWrite(motor1Phase, LOW); //forward
+  analogWrite(motor1PWM, 100); // set speed of motor
+  digitalWrite(motor2Phase, HIGH); //forward
+  analogWrite(motor2PWM, 100); // set speed of motor
+}
+
+void GoLeft() {
+  digitalWrite(motor1Phase, HIGH); //forward
+  analogWrite(motor1PWM, 100); // set speed of motor
+  digitalWrite(motor2Phase, LOW); //forward
+  analogWrite(motor2PWM, 100); // set speed of motor
+}
+
 void GoBackwards() {
   digitalWrite(motor1Phase, LOW); //Backward
   analogWrite(motor1PWM, 100); // set speed of motor
@@ -64,4 +89,10 @@ void GoBackwards() {
   digitalWrite(motor2Phase, LOW); //Backward
   analogWrite(motor2PWM, 100); // set speed of motor
   Serial.println("Backward"); // Display motor direction
+}
+
+void Stop() {
+  //delay(100000000000000000);
+  analogWrite(motor1PWM, LOW); 
+  analogWrite(motor2PWM, LOW); 
 }
