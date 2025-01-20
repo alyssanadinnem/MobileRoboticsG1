@@ -5,8 +5,8 @@ int motor2PWM = 39; //right wheel - 2
 int motor2Phase = 20;
 
 //OPTICAL SENSOR 
-int AnalogValue[5] = {0,0,0,0,0};
-int AnalogPin[5] = {5,4,6,7,15};
+int AnalogueValue[5] = {0,0,0,0,0};
+int AnaloguePin[5] = {5,4,6,7,15};
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -20,25 +20,36 @@ void setup() {
   //OPTICAL SENSOR
   int i;
   for(i=0; i<5; i++) {
-    pinMode(AnalogPin[i], INPUT);
+    pinMode(AnaloguePin[i], INPUT);
   }
 }
 
 // the loop routine runs over and over again continuously:
 void loop() {
-//MOTOR CODE:
-  /*GoForward();
-  delay(2000); //2 seconds
-  GoBackwards();
-  delay(2000); //2 secondS
-  */
 
-//OPTICAL SENSOR TEST:
+  OpticalTest();
+  GoForwards();
+  if (AnalogueValue[2] <= 500 && AnalogueValue[0] >= 1000 && AnalogueValue[1] >= 1000 && AnalogueValue[3] >= 1000 && AnalogueValue[4] >= 1000) {
+    GoForwards();
+    delay(10);
+  }
+  else if (AnalogueValue[1] <= 500 && AnalogueValue[0] >= 1000 && AnalogueValue[2] >= 1000 && AnalogueValue[3] >= 1000 && AnalogueValue[4] >= 1000) {
+    GoLeft();
+    delay(10);
+  }
+  else if (AnalogueValue[3] <= 500 && AnalogueValue[0] >= 1000 && AnalogueValue[2] >= 1000 && AnalogueValue[1] >= 1000 && AnalogueValue[4] >= 1000) {
+    GoRight();
+    delay(10);
+  }
+
+}
+
+void OpticalTest() {
   int i;
   for (i=0;i<5;i++)
   {
-  AnalogValue[i]=analogRead(AnalogPin[i]);
-  Serial.print(AnalogValue[i]); // This prints the actual analog reading from the sensors
+  AnalogueValue[i]=analogRead(AnaloguePin[i]);
+  Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
   Serial.print("\t"); //tab over on screen
   if(i==4)
       {
@@ -46,26 +57,13 @@ void loop() {
         delay(100); // display new set of readings every 600mS
       }
   }
-
-  GoForward();
-  delay(2000);
-  GoRight();
-  delay(2000);
-  GoLeft();
-  delay(2000);
-  GoBackwards();
-  delay(2000);
-  Stop();
-  delay(2000);
 }
 
-void GoForward() {
+void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
   analogWrite(motor1PWM, 100); // set speed of motor
-  Serial.println("Forward"); // Display motor direction
   digitalWrite(motor2Phase, HIGH); //forward
   analogWrite(motor2PWM, 100); // set speed of motor
-  Serial.println("Forward"); // Display motor direction
 }
 
 void GoRight() {
@@ -84,11 +82,9 @@ void GoLeft() {
 
 void GoBackwards() {
   digitalWrite(motor1Phase, LOW); //Backward
-  analogWrite(motor1PWM, 100); // set speed of motor
-  Serial.println("Backward"); // Display motor direction 
+  analogWrite(motor1PWM, 100); // set speed of motor 
   digitalWrite(motor2Phase, LOW); //Backward
   analogWrite(motor2PWM, 100); // set speed of motor
-  Serial.println("Backward"); // Display motor direction
 }
 
 void Stop() {
