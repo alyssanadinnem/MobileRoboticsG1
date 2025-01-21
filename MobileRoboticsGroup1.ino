@@ -9,7 +9,6 @@ int AnalogueValue[5] = {0,0,0,0,0};
 int AnaloguePin[5] = {5,4,6,7,15};
 
 //THRESHOLDS
-int BlackThreshold = 500;
 int WhiteThreshold = 1000;
 
 //CASES
@@ -155,22 +154,21 @@ void loop() {
 
   OpticalTest();
 
-  delay(200);
-  if (BBWBB() || BWWWW() || WWWWB() || BWWBB() || BBWWB() || WBBBW() || BWWWB()) {
+  if (BBWBB() || BWWWW() || WWWWB() || BWWBB() || BBWWB() || WBBBW() || BWWWB() || BWBBB() || BBBWB()) {
     GoForwards();
   } 
   else if (WWBBB() || WBBBB() || BWBBB()) {
-    GoLeft_Fast();
+    GoRight();
   } 
   else if (BBBWW() || BBBBW() || BBBWB()) {
-    GoRight_Fast();
+    GoLeft();
   } 
   else if (WWWWWW()) {
     delay(200);
     GoForwards();
   }
   else if (BBBBB()) {
-    GoLeft_Fast();
+    GoLeft();
   }
   else {
     Stop();
@@ -194,45 +192,30 @@ void OpticalTest() {
 
 void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
-  analogWrite(motor1PWM, 150); // set speed of motor
+  analogWrite(motor1PWM, 120); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
-  analogWrite(motor2PWM, 140); // set speed of motor
+  analogWrite(motor2PWM, 110); // set speed of motor
 }
 
-void GoRight_Fast() {
+void GoRight() {
   digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, 50);
-  digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, 75);
+  analogWrite(motor1PWM, 120);
+  digitalWrite(motor2Phase, LOW);
+  analogWrite(motor2PWM, 0);
 }
 
-void GoRight_Slow() {
-  digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, 30);
+void GoLeft() {
+  digitalWrite(motor1Phase, LOW);
+  analogWrite(motor1PWM, 0);
   digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, 50);
-}
-
-
-void GoLeft_Fast() {
-  digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, 75);
-  digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, 50);
-}
-
-void GoLeft_Slow() {
-  digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, 50);
-  digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, 30);
+  analogWrite(motor2PWM, 110);
 }
 
 void GoBackwards() {
   digitalWrite(motor1Phase, LOW);
-  analogWrite(motor1PWM, 100);
+  analogWrite(motor1PWM, 120);
   digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, 100);
+  analogWrite(motor2PWM, 110);
 }
 
 void Stop() {
