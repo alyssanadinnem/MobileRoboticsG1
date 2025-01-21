@@ -34,11 +34,12 @@ void loop() {
   OpticalTest();
 
    //state identifier based on sensor readings
-  int state = 0;
+  bool state = 0b00000;
   for (int i = 0; i < 5; i++) {
     if (AnalogueValue[i] >= Threshold) {
       state |= (1 << i); // Set the bit if the sensor detects black
     }
+    Serial.print(state,BIN);
   }
 
   //cases for truth table
