@@ -35,11 +35,21 @@ void loop() {
 
   if (OnWhiteLine()) {
     GoForwards();
-  } else if (AnalogueValue[1] <= BlackThreshold) {
-    GoLeft();
-  } else if (AnalogueValue[3] <= BlackThreshold) {
+  } 
+  else if (AnalogueValue[1] <= WhiteThreshold || AnalogueValue[0] <= WhiteThreshold) {
     GoRight();
-  } else {
+  } 
+  else if (AnalogueValue[3] <= WhiteThreshold || AnalogueValue[4] <= WhiteThreshold) {
+    GoLeft();
+  } 
+  else if (AllWhiteLine()) {
+    delay(100);
+    GoForwards();
+  }
+  else if (AllBlackLine()) {
+    GoLeft();
+  }
+  else {
     Stop();
   }
 
@@ -68,25 +78,41 @@ bool OnWhiteLine() {
           AnalogueValue[4] >= WhiteThreshold);
 }
 
-void GoForwards() {
-  digitalWrite(motor1Phase, HIGH); //forward
-  analogWrite(motor1PWM, 100); // set speed of motor
-  digitalWrite(motor2Phase, HIGH); //forward
-  analogWrite(motor2PWM, 100); // set speed of motor
+bool AllWhiteLine() {
+  return (AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[0] <= WhiteThreshold &&
+          AnalogueValue[1] <= WhiteThreshold &&
+          AnalogueValue[3] <= WhiteThreshold &&
+          AnalogueValue[4] <= WhiteThreshold);
 }
 
-void GoRight() {
-  digitalWrite(motor1Phase, LOW)
-  analogWrite(motor1PWM, 100);
-  digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, 100);
+bool AllBlackLine() {
+  return (AnalogueValue[2] >= WhiteThreshold &&
+          AnalogueValue[0] >= WhiteThreshold &&
+          AnalogueValue[1] >= WhiteThreshold &&
+          AnalogueValue[3] >= WhiteThreshold &&
+          AnalogueValue[4] >= WhiteThreshold);
+}
+
+void GoForwards() {
+  digitalWrite(motor1Phase, HIGH); //forward
+  analogWrite(motor1PWM, 150); // set speed of motor
+  digitalWrite(motor2Phase, HIGH); //forward
+  analogWrite(motor2PWM, 150); // set speed of motor
 }
 
 void GoLeft() {
+  digitalWrite(motor1Phase, LOW);
+  analogWrite(motor1PWM, 50);
+  digitalWrite(motor2Phase, HIGH);
+  analogWrite(motor2PWM, 50);
+}
+
+void GoRight() {
   digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, 100);
+  analogWrite(motor1PWM, 50);
   digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, 100);
+  analogWrite(motor2PWM, 50);
 }
 
 void GoBackwards() {
