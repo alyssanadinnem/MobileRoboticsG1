@@ -8,6 +8,10 @@ int motor2Phase = 20;
 int AnalogueValue[5] = {0,0,0,0,0};
 int AnaloguePin[5] = {5,4,6,7,15};
 
+//THRESHOLDS
+int BlackThreshold = 500;
+int WhiteThreshold = 1000;
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(9600);
@@ -28,18 +32,15 @@ void setup() {
 void loop() {
 
   OpticalTest();
-  GoForwards();
-  if (AnalogueValue[2] <= 500 && AnalogueValue[0] >= 1000 && AnalogueValue[1] >= 1000 && AnalogueValue[3] >= 1000 && AnalogueValue[4] >= 1000) {
+
+  if (OnWhiteLine()) {
     GoForwards();
-    delay(10);
-  }
-  else if (AnalogueValue[1] <= 500 && AnalogueValue[0] >= 1000 && AnalogueValue[2] >= 1000 && AnalogueValue[3] >= 1000 && AnalogueValue[4] >= 1000) {
+  } else if (AnalogueValue[1] <= BlackThreshold) {
     GoLeft();
-    delay(10);
-  }
-  else if (AnalogueValue[3] <= 500 && AnalogueValue[0] >= 1000 && AnalogueValue[2] >= 1000 && AnalogueValue[1] >= 1000 && AnalogueValue[4] >= 1000) {
+  } else if (AnalogueValue[3] <= BlackThreshold) {
     GoRight();
-    delay(10);
+  } else {
+    Stop();
   }
 
 }
@@ -59,6 +60,14 @@ void OpticalTest() {
   }
 }
 
+bool OnWhiteLine() {
+  return (AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[0] >= WhiteThreshold &&
+          AnalogueValue[1] >= WhiteThreshold &&
+          AnalogueValue[3] >= WhiteThreshold &&
+          AnalogueValue[4] >= WhiteThreshold);
+}
+
 void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
   analogWrite(motor1PWM, 100); // set speed of motor
@@ -67,28 +76,28 @@ void GoForwards() {
 }
 
 void GoRight() {
-  digitalWrite(motor1Phase, LOW); //forward
-  analogWrite(motor1PWM, 100); // set speed of motor
-  digitalWrite(motor2Phase, HIGH); //forward
-  analogWrite(motor2PWM, 100); // set speed of motor
+  digitalWrite(motor1Phase, LOW)
+  analogWrite(motor1PWM, 100);
+  digitalWrite(motor2Phase, HIGH);
+  analogWrite(motor2PWM, 100);
 }
 
 void GoLeft() {
-  digitalWrite(motor1Phase, HIGH); //forward
-  analogWrite(motor1PWM, 100); // set speed of motor
-  digitalWrite(motor2Phase, LOW); //forward
-  analogWrite(motor2PWM, 100); // set speed of motor
+  digitalWrite(motor1Phase, HIGH);
+  analogWrite(motor1PWM, 100);
+  digitalWrite(motor2Phase, LOW);
+  analogWrite(motor2PWM, 100);
 }
 
 void GoBackwards() {
-  digitalWrite(motor1Phase, LOW); //Backward
-  analogWrite(motor1PWM, 100); // set speed of motor 
-  digitalWrite(motor2Phase, LOW); //Backward
-  analogWrite(motor2PWM, 100); // set speed of motor
+  digitalWrite(motor1Phase, LOW);
+  analogWrite(motor1PWM, 100);
+  digitalWrite(motor2Phase, LOW);
+  analogWrite(motor2PWM, 100);
 }
 
 void Stop() {
   //delay(100000000000000000);
-  analogWrite(motor1PWM, LOW); 
-  analogWrite(motor2PWM, LOW); 
+  analogWrite(motor1PWM, 0); 
+  analogWrite(motor2PWM, 0); 
 }
