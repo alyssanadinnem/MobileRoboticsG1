@@ -1,10 +1,8 @@
 //MOTOR
 int motor1PWM = 37; //left wheel - 1
 int motor1Phase = 38;
-int motor2PWM = 39; //right wheel - 2
+int motor2PWM = 39; //right wheel - 2, slower
 int motor2Phase = 20;
-int left_pwm = 20;
-int right_pwm = 20;
 
 //OPTICAL SENSOR 
 int AnalogueValue[5] = {0,0,0,0,0};
@@ -63,6 +61,22 @@ bool BBBWB() { //white on fourth
           AnalogueValue[4] >= WhiteThreshold);
 }
 
+bool BBWWB() { //white on fourth
+  return (AnalogueValue[0] >= WhiteThreshold &&
+          AnalogueValue[1] >= WhiteThreshold &&
+          AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[3] <= WhiteThreshold &&
+          AnalogueValue[4] >= WhiteThreshold);
+}
+
+bool BWWBB() { //white on fourth
+  return (AnalogueValue[0] >= WhiteThreshold &&
+          AnalogueValue[1] <= WhiteThreshold &&
+          AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[3] >= WhiteThreshold &&
+          AnalogueValue[4] >= WhiteThreshold);
+}
+
 bool BBBBW() { //white on fifth
   return (AnalogueValue[0] >= WhiteThreshold &&
           AnalogueValue[1] >= WhiteThreshold &&
@@ -87,6 +101,39 @@ bool BBBWW() { //white on fifth
           AnalogueValue[4] <= WhiteThreshold);
 }
 
+
+bool BWWWW() { //white on fifth
+  return (AnalogueValue[0] >= WhiteThreshold &&
+          AnalogueValue[1] <= WhiteThreshold &&
+          AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[3] <= WhiteThreshold &&
+          AnalogueValue[4] <= WhiteThreshold);
+}
+
+bool WWWWB() { //white on fifth
+  return (AnalogueValue[0] <= WhiteThreshold &&
+          AnalogueValue[1] <= WhiteThreshold &&
+          AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[3] <= WhiteThreshold &&
+          AnalogueValue[4] >= WhiteThreshold);
+}
+
+bool WBBBW() { //white on fifth
+  return (AnalogueValue[0] <= WhiteThreshold &&
+          AnalogueValue[1] >= WhiteThreshold &&
+          AnalogueValue[2] >= WhiteThreshold &&
+          AnalogueValue[3] >= WhiteThreshold &&
+          AnalogueValue[4] <= WhiteThreshold);
+}
+
+bool BWWWB() { //white on fifth
+  return (AnalogueValue[0] >= WhiteThreshold &&
+          AnalogueValue[1] <= WhiteThreshold &&
+          AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[3] <= WhiteThreshold &&
+          AnalogueValue[4] >= WhiteThreshold);
+}
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(9600);
@@ -108,25 +155,26 @@ void loop() {
 
   OpticalTest();
 
-  if (BBWBB()) {
+  delay(200);
+  if (BBWBB() || BWWWW() || WWWWB() || BWWBB() || BBWWB() || WBBBW() || BWWWB()) {
     GoForwards();
   } 
   else if (WWBBB() || WBBBB() || BWBBB()) {
-    GoLeft(left_pwm);
+    GoLeft_Fast();
   } 
   else if (BBBWW() || BBBBW() || BBBWB()) {
-    GoRight(right_pwm);
+    GoRight_Fast();
   } 
   else if (WWWWWW()) {
+    delay(200);
     GoForwards();
   }
   else if (BBBBB()) {
-    GoLeft(left_pwm);
+    GoLeft_Fast();
   }
   else {
     Stop();
   }
-
 }
 
 void OpticalTest() {
@@ -148,21 +196,36 @@ void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
   analogWrite(motor1PWM, 150); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
-  analogWrite(motor2PWM, 150); // set speed of motor
+  analogWrite(motor2PWM, 140); // set speed of motor
 }
 
-int GoRight(int right_pwm) {
-  digitalWrite(motor1Phase, LOW);
+void GoRight_Fast() {
+  digitalWrite(motor1Phase, HIGH);
   analogWrite(motor1PWM, 50);
   digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, right_pwm);
+  analogWrite(motor2PWM, 75);
 }
 
-int GoLeft(int left_pwm) {
+void GoRight_Slow() {
   digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, left_pwm);
-  digitalWrite(motor2Phase, LOW);
+  analogWrite(motor1PWM, 30);
+  digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, 50);
+}
+
+
+void GoLeft_Fast() {
+  digitalWrite(motor1Phase, HIGH);
+  analogWrite(motor1PWM, 75);
+  digitalWrite(motor2Phase, HIGH);
+  analogWrite(motor2PWM, 50);
+}
+
+void GoLeft_Slow() {
+  digitalWrite(motor1Phase, HIGH);
+  analogWrite(motor1PWM, 50);
+  digitalWrite(motor2Phase, HIGH);
+  analogWrite(motor2PWM, 30);
 }
 
 void GoBackwards() {
@@ -177,16 +240,3 @@ void Stop() {
   analogWrite(motor1PWM, 0); 
   analogWrite(motor2PWM, 0); 
 }
-
-/*
-void calc_turn() {
-  error_value = constrain(error_value, -256, 256);
-
-  if (error_value < 0) {
-    right_speed = max_speed + error_value;
-    left_speed = max_speed;
-  } else {
-    right_speed = max_speed;
-    left_speed = max_speed - error_value;
-  }
-}*/
