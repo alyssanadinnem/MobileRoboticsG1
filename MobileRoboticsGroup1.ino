@@ -33,7 +33,7 @@ void loop() {
 
   OpticalTest();
 
-  if (OnWhiteLine()) {
+  if (BBWBB()) {
     GoForwards();
   } 
   else if (AnalogueValue[1] <= WhiteThreshold || AnalogueValue[0] <= WhiteThreshold) {
@@ -42,11 +42,11 @@ void loop() {
   else if (AnalogueValue[3] <= WhiteThreshold || AnalogueValue[4] <= WhiteThreshold) {
     GoLeft();
   } 
-  else if (AllWhiteLine()) {
+  else if (WWWWWW()) {
     delay(100);
     GoForwards();
   }
-  else if (AllBlackLine()) {
+  else if (BBBBB()) {
     GoLeft();
   }
   else {
@@ -70,7 +70,7 @@ void OpticalTest() {
   }
 }
 
-bool OnWhiteLine() {
+bool BBWBB() {
   return (AnalogueValue[2] <= WhiteThreshold &&
           AnalogueValue[0] >= WhiteThreshold &&
           AnalogueValue[1] >= WhiteThreshold &&
@@ -78,7 +78,7 @@ bool OnWhiteLine() {
           AnalogueValue[4] >= WhiteThreshold);
 }
 
-bool AllWhiteLine() {
+bool WWWWWW() {
   return (AnalogueValue[2] <= WhiteThreshold &&
           AnalogueValue[0] <= WhiteThreshold &&
           AnalogueValue[1] <= WhiteThreshold &&
@@ -86,10 +86,18 @@ bool AllWhiteLine() {
           AnalogueValue[4] <= WhiteThreshold);
 }
 
-bool AllBlackLine() {
+bool BBBBB() {
   return (AnalogueValue[2] >= WhiteThreshold &&
           AnalogueValue[0] >= WhiteThreshold &&
           AnalogueValue[1] >= WhiteThreshold &&
+          AnalogueValue[3] >= WhiteThreshold &&
+          AnalogueValue[4] >= WhiteThreshold);
+}
+
+bool WBBBB() {
+  return (AnalogueValue[0] <= WhiteThreshold &&
+          AnalogueValue[1] >= WhiteThreshold &&
+          AnalogueValue[2] >= WhiteThreshold &&
           AnalogueValue[3] >= WhiteThreshold &&
           AnalogueValue[4] >= WhiteThreshold);
 }
@@ -127,3 +135,15 @@ void Stop() {
   analogWrite(motor1PWM, 0); 
   analogWrite(motor2PWM, 0); 
 }
+/*
+void calc_turn() {
+  error_value = constrain(error_value, -256, 256);
+
+  if (error_value < 0) {
+    right_speed = max_speed + error_value;
+    left_speed = max_speed;
+  } else {
+    right_speed = max_speed;
+    left_speed = max_speed - error_value;
+  }
+}*/
