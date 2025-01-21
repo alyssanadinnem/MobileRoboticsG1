@@ -133,6 +133,22 @@ bool BWWWB() { //white on fifth
           AnalogueValue[4] >= WhiteThreshold);
 }
 
+bool WWWBB() { //white on fifth
+  return (AnalogueValue[0] <= WhiteThreshold &&
+          AnalogueValue[1] <= WhiteThreshold &&
+          AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[3] >= WhiteThreshold &&
+          AnalogueValue[4] >= WhiteThreshold);
+}
+
+bool BBWWW() { //white on fifth
+  return (AnalogueValue[0] >= WhiteThreshold &&
+          AnalogueValue[1] >= WhiteThreshold &&
+          AnalogueValue[2] <= WhiteThreshold &&
+          AnalogueValue[3] <= WhiteThreshold &&
+          AnalogueValue[4] <= WhiteThreshold);
+}
+
 // the setup routine runs once when you press reset:
 void setup() {
   Serial.begin(9600);
@@ -153,22 +169,29 @@ void setup() {
 void loop() {
 
   OpticalTest();
+  delay(10);
 
-  if (BBWBB() || BWWWW() || WWWWB() || BWWBB() || BBWWB() || WBBBW() || BWWWB() || BWBBB() || BBBWB()) {
+  if (BBWBB() || BWWWW() || WWWWB() || BWWBB() || BBWWB() || WBBBW() || BWWWB() || BWBBB() || BBBWB() || BBWWW() || WWWBB()) {
     GoForwards();
   } 
-  else if (WWBBB() || WBBBB() || BWBBB()) {
-    GoRight();
+  else if (WBBBB()) {
+    GoRight(120);
   } 
-  else if (BBBWW() || BBBBW() || BBBWB()) {
-    GoLeft();
+  else if (WWBBB() || BWBBB()) {
+    GoRight(80);
+  } 
+  else if (BBBBW()) {
+    GoLeft(115);
+  } 
+  else if (BBBWW() || BBBWB()) {
+    GoLeft(70);
   } 
   else if (WWWWWW()) {
-    delay(200);
+    Stop();
     GoForwards();
   }
   else if (BBBBB()) {
-    GoLeft();
+    GoLeft(120);
   }
   else {
     Stop();
@@ -194,21 +217,21 @@ void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
   analogWrite(motor1PWM, 120); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
-  analogWrite(motor2PWM, 110); // set speed of motor
+  analogWrite(motor2PWM, 115); // set speed of motor
 }
 
-void GoRight() {
+void GoRight(int turn_right) {
   digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, 120);
+  analogWrite(motor1PWM, turn_right);
   digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, 0);
+  analogWrite(motor2PWM, 40);
 }
 
-void GoLeft() {
+void GoLeft(int turn_left) {
   digitalWrite(motor1Phase, LOW);
-  analogWrite(motor1PWM, 0);
+  analogWrite(motor1PWM, 35);
   digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, 110);
+  analogWrite(motor2PWM, turn_left);
 }
 
 void GoBackwards() {
@@ -222,7 +245,15 @@ void Stop() {
   //delay(100000000000000000);
   analogWrite(motor1PWM, 0); 
   analogWrite(motor2PWM, 0); 
+<<<<<<< HEAD
+}
+=======
 }
 //edit
 //hello
+<<<<<<< Updated upstream
 //hi
+=======
+//hi
+>>>>>>> c5787955cf76e1d86542fe3576de1ce3d1848af0
+>>>>>>> Stashed changes
