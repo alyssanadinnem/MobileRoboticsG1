@@ -9,8 +9,8 @@ int AnalogueValue[5] = {0,0,0,0,0};
 int AnaloguePin[5] = {5,4,6,7,15};
 
 //THRESHOLDS
-int BlackThreshold = 500;
-int WhiteThreshold = 1000;
+
+int Threshold = 750;
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -33,26 +33,50 @@ void loop() {
 
   OpticalTest();
 
-  if (BBWBB()) {
-    GoForwards();
-  } 
-  else if (AnalogueValue[1] <= WhiteThreshold || AnalogueValue[0] <= WhiteThreshold) {
-    GoRight();
-  } 
-  else if (AnalogueValue[3] <= WhiteThreshold || AnalogueValue[4] <= WhiteThreshold) {
-    GoLeft();
-  } 
-  else if (WWWWWW()) {
-    delay(100);
-    GoForwards();
-  }
-  else if (BBBBB()) {
-    GoLeft();
-  }
-  else {
-    Stop();
+   //state identifier based on sensor readings
+  int state = 0;
+  for (int i = 0; i < 5; i++) {
+    if (AnalogueValue[i] >= Threshold) {
+      state |= (1 << i); // Set the bit if the sensor detects black
+    }
   }
 
+  //cases for truth table
+  switch (state) {
+    case 0b00000: //all sensors white
+      GoForwards();
+      break;
+    case 0b11111: //all sensors black
+      GoLeft();
+      delay(500);
+      GoForwards();
+      delay(500);
+      break;
+    case 0b11000: //leftmost sensors detect black
+      GoRight();
+      break;
+    case 0b10000:
+      GoRight();
+      break;
+    case 0b00011: //rightmost sensors detect black
+      GoLeft();
+      break;
+    case 0b00001:
+      GoLeft();
+      break;
+    case 0b00100: //center sensor detects black
+      GoForwards();
+      break;
+    case 0b11101: //center sensor detects black
+      GoRight();
+      break;
+    case 0b10111: //center sensor detects black
+      GoLeft();
+      break;
+    default: //undefined state
+      Stop();
+      break;
+  }
 }
 
 void OpticalTest() {
@@ -70,37 +94,6 @@ void OpticalTest() {
   }
 }
 
-bool BBWBB() {
-  return (AnalogueValue[2] <= WhiteThreshold &&
-          AnalogueValue[0] >= WhiteThreshold &&
-          AnalogueValue[1] >= WhiteThreshold &&
-          AnalogueValue[3] >= WhiteThreshold &&
-          AnalogueValue[4] >= WhiteThreshold);
-}
-
-bool WWWWWW() {
-  return (AnalogueValue[2] <= WhiteThreshold &&
-          AnalogueValue[0] <= WhiteThreshold &&
-          AnalogueValue[1] <= WhiteThreshold &&
-          AnalogueValue[3] <= WhiteThreshold &&
-          AnalogueValue[4] <= WhiteThreshold);
-}
-
-bool BBBBB() {
-  return (AnalogueValue[2] >= WhiteThreshold &&
-          AnalogueValue[0] >= WhiteThreshold &&
-          AnalogueValue[1] >= WhiteThreshold &&
-          AnalogueValue[3] >= WhiteThreshold &&
-          AnalogueValue[4] >= WhiteThreshold);
-}
-
-bool WBBBB() {
-  return (AnalogueValue[0] <= WhiteThreshold &&
-          AnalogueValue[1] >= WhiteThreshold &&
-          AnalogueValue[2] >= WhiteThreshold &&
-          AnalogueValue[3] >= WhiteThreshold &&
-          AnalogueValue[4] >= WhiteThreshold);
-}
 
 void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
@@ -135,15 +128,3 @@ void Stop() {
   analogWrite(motor1PWM, 0); 
   analogWrite(motor2PWM, 0); 
 }
-/*
-void calc_turn() {
-  error_value = constrain(error_value, -256, 256);
-
-  if (error_value < 0) {
-    right_speed = max_speed + error_value;
-    left_speed = max_speed;
-  } else {
-    right_speed = max_speed;
-    left_speed = max_speed - error_value;
-  }
-}*/
