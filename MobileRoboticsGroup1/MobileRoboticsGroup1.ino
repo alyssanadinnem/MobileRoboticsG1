@@ -11,8 +11,27 @@ int AnaloguePin[5] = {5,4,6,7,15};
 //THRESHOLDS
 int WhiteThreshold = 1000;
 
-//TURNS
-int turn = 0;
+//LEFT OR RIGHT
+int left_or_right = 0;
+
+//SPEED VARIABLES
+int straight_l = 130;
+int straight_r = 125;
+
+int sharp_right_motor_r = 140;
+int sharp_right_motor_l = 0;
+
+int sharp_left_motor_r = 0;
+int sharp_left_motor_l = 140
+;
+
+int straighten_left_r = 110;
+int straighten_left_l = 130;
+
+int straighten_right_r = 130;
+int straighten_right_l = 110;
+
+
 
 //CASES
 bool BBWBB() { //On white line
@@ -172,52 +191,43 @@ void setup() {
 void loop() {
 
   OpticalTest();
-  delay(10);
+  delay(1);
 
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
   }
   else if (BWWBB() || BWBBB()) { 
-    Left(125, 100);
+    Left(straighten_left_l, straighten_left_r);
   } 
   else if (WWWBB()) {
-    TankLeft(125, 100);
+    TankLeft(straighten_left_l, straighten_left_r);
   }
   else if (WBBBB() || WWBBB()) {
-    if (turn>=5) {
-      Left(125, 100);
-      turn=0;
-    }
-    else {
-      Left(200, 0);
-      turn += 1;
-      }
+    Left(sharp_left_motor_l, sharp_left_motor_r);
   } 
   else if (BBBWW() || BBBBW()) {
-    if (turn>=5) {
-      Right(100, 130);
-      turn=0;
-    }
-    else {
-      Right(0, 200);
-      turn += 1;
-      }
+    Right(sharp_right_motor_l, sharp_right_motor_r);
   } 
   else if (BBWWW()) {
-    TankRight(95, 125);
+    TankRight(straighten_right_l, straighten_right_r);
   }
   else if (BBBWB() || BBWWB()) {
-    Right(95, 125);
+    Right(straighten_right_l, straighten_right_r);
   } 
   else if (WWWWWW() || BWWWW() || WWWWB()) {
-    turn=0;
     Stop();
     delay(2000);
     GoForwards();
   }
   else if (BBBBB()) {
-    Left(70,120);
+    if (left_or_right == 0) {
+    Left(sharp_left_motor_l, sharp_left_motor_r);
+    }
+    else{
+    Right(sharp_right_motor_l, sharp_right_motor_r);
+    }
   }
+
   else {
     Stop();
   }
@@ -240,9 +250,9 @@ void OpticalTest() {
 
 void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
-  analogWrite(motor1PWM, 120); // set speed of motor
+  analogWrite(motor1PWM, straight_l); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
-  analogWrite(motor2PWM, 115); // set speed of motor
+  analogWrite(motor2PWM, straight_r); // set speed of motor
 }
 
 void Left(int turn_right, int turn_left) {
@@ -250,6 +260,8 @@ void Left(int turn_right, int turn_left) {
   analogWrite(motor1PWM, turn_right);
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
+  left_or_right = 0;
+
 }
 
 void Right(int turn_right, int turn_left) {
@@ -257,6 +269,7 @@ void Right(int turn_right, int turn_left) {
   analogWrite(motor1PWM, turn_right);
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
+  left_or_right = 1;
 }
 
 void TankLeft(int turn_right, int turn_left) {
@@ -264,6 +277,8 @@ void TankLeft(int turn_right, int turn_left) {
   analogWrite(motor1PWM, turn_right);
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
+  left_or_right = 0;
+
 }
 
 void TankRight(int turn_right, int turn_left) {
@@ -271,17 +286,18 @@ void TankRight(int turn_right, int turn_left) {
   analogWrite(motor1PWM, turn_right);
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, turn_left);
+  left_or_right = 1;
+
 }
 
 void GoBackwards() {
   digitalWrite(motor1Phase, LOW);
-  analogWrite(motor1PWM, 120);
+  analogWrite(motor1PWM, straight_l);
   digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, 115);
+  analogWrite(motor2PWM, straight_r);
 }
 
 void Stop() {
-  //delay(100000000000000000);
   analogWrite(motor1PWM, 0); 
-  analogWrite(motor2PWM, 0); 
+  analogWrite(motor2PWM, 0);
 }
