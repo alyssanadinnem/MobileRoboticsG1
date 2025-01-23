@@ -171,27 +171,35 @@ void loop() {
   OpticalTest();
   delay(10);
 
-  if (BBWBB() || BWWWW() || WWWWB() || BWWBB() || BBWWB() || WBBBW() || BWWWB() || BWBBB() || BBBWB() || BBWWW() || WWWBB()) {
+  if (BBWBB() || BWWWW() || WWWWB() || WBBBW() || BWWWB() || BBBWB() || BBWWW() || WWWBB()) {
     GoForwards();
+  }
+  else if (BWWBB() || BWBBB()) {
+    Left(125, 100);
   } 
   else if (WBBBB()) {
-    GoRight(120);
+    Left(130, 20);
   } 
-  else if (WWBBB() || BWBBB()) {
-    GoRight(80);
+  else if (WWBBB() || WBBBB()) {
+    Left(180, 0);
   } 
-  else if (BBBBW()) {
-    GoLeft(115);
+  else if (BBBWW() || BBBBW()) {
+    Right(0, 180);
   } 
-  else if (BBBWW() || BBBWB()) {
-    GoLeft(70);
+  else if (BBBWW()) {
+    Right(20, 130);
+  } 
+  else if (BBBWB() || BBWWB()) {
+    Right(95, 125);
   } 
   else if (WWWWWW()) {
     Stop();
+    delay(100);
     GoForwards();
   }
   else if (BBBBB()) {
-    GoLeft(120);
+    Left(70,120);
+    
   }
   else {
     Stop();
@@ -202,7 +210,7 @@ void OpticalTest() {
   int i;
   for (i=0;i<5;i++)
   {
-  AnalogueValue[i]=analogRead(AnaloguePin[i]);
+  AnalogueValue[i]=analoggRead(AnaloguePin[i]);
   Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
   Serial.print("\t"); //tab over on screen
   if(i==4)
@@ -220,16 +228,16 @@ void GoForwards() {
   analogWrite(motor2PWM, 115); // set speed of motor
 }
 
-void GoRight(int turn_right) {
+void Left(int turn_right, int turn_left) {
   digitalWrite(motor1Phase, HIGH);
   analogWrite(motor1PWM, turn_right);
-  digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, 40);
+  digitalWrite(motor2Phase, HIGH);
+  analogWrite(motor2PWM, turn_left);
 }
 
-void GoLeft(int turn_left) {
-  digitalWrite(motor1Phase, LOW);
-  analogWrite(motor1PWM, 35);
+void Right(int turn_right, int turn_left) {
+  digitalWrite(motor1Phase, HIGH);
+  analogWrite(motor1PWM, turn_right);
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
 }
@@ -238,22 +246,11 @@ void GoBackwards() {
   digitalWrite(motor1Phase, LOW);
   analogWrite(motor1PWM, 120);
   digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, 110);
+  analogWrite(motor2PWM, 115);
 }
 
 void Stop() {
   //delay(100000000000000000);
   analogWrite(motor1PWM, 0); 
   analogWrite(motor2PWM, 0); 
-<<<<<<< HEAD
 }
-=======
-}
-//edit
-//hello
-<<<<<<< Updated upstream
-//hi
-=======
-//hi
->>>>>>> c5787955cf76e1d86542fe3576de1ce3d1848af0
->>>>>>> Stashed changes
