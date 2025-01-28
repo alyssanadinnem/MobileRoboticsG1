@@ -204,21 +204,14 @@ void setup() {
 void loop() {
 
   OpticalTest();
-  delay(10);
-
-<<<<<<< Updated upstream
-  //MOBILITY
   delay(1);
+
   if (BBWBB() || WBBBW() || BWWWB()) {
-=======
-  if (BBWBB() || BWWWW() || WWWWB() || BWWBB() || BBWWB() || WBBBW() || BWWWB() || BWBBB() || BBBWB() || BBWWW() || WWWBB()) {
->>>>>>> Stashed changes
     GoForwards();
   }
   else if (BWWBB() || BWBBB()) { 
     Left(straighten_left_l, straighten_left_r);
   } 
-<<<<<<< Updated upstream
   else if (WWWBB()) {
     TankLeft(straighten_left_l, straighten_left_r);
   }
@@ -246,32 +239,10 @@ void loop() {
     else{
     Right(sharp_right_motor_l, sharp_right_motor_r);
     }
-=======
-  else if (WBBBB()) {
-    GoRight(120);
-  } 
-  else if (WWBBB() || BWBBB()) {
-    GoRight(80);
-  } 
-  else if (BBBBW()) {
-    GoLeft(115);
-  } 
-  else if (BBBWW() || BBBWB()) {
-    GoLeft(70);
-  } 
-  else if (WWWWWW()) {
-    Stop();
-    GoForwards();
   }
-  else if (BBBBB()) {
-    GoLeft(120);
->>>>>>> Stashed changes
-  }
-
   else {
     Stop();
   }
-}
 
 void OpticalTest() {
   int i;
@@ -292,7 +263,6 @@ void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
   analogWrite(motor1PWM, straight_l); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
-<<<<<<< Updated upstream
   analogWrite(motor2PWM, straight_r); // set speed of motor
 }
 
@@ -328,24 +298,6 @@ void TankRight(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 1;
-
-=======
-  analogWrite(motor2PWM, 115); // set speed of motor
-}
-
-void GoRight(int turn_right) {
-  digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, turn_right);
-  digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, 40);
-}
-
-void GoLeft(int turn_left) {
-  digitalWrite(motor1Phase, LOW);
-  analogWrite(motor1PWM, 35);
-  digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, turn_left);
->>>>>>> Stashed changes
 }
 
 void GoBackwards() {
@@ -357,7 +309,6 @@ void GoBackwards() {
 
 void Stop() {
   analogWrite(motor1PWM, 0); 
-<<<<<<< Updated upstream
   analogWrite(motor2PWM, 0);
 }
 
@@ -394,7 +345,7 @@ bool connect() {
     return true;
 }
 
-String SendMessage() {
+string SendMessage() {
   // post body
   String postBody("position=");
   postBody += position;
@@ -442,14 +393,3 @@ int statusCode = getStatusCode(response);
 
 // disconnect
 client.stop();
-=======
-  analogWrite(motor2PWM, 0); 
-<<<<<<< HEAD
-}
-=======
-}
-//edit
-//hello
-//hi
->>>>>>> c5787955cf76e1d86542fe3576de1ce3d1848af0
->>>>>>> Stashed changes
