@@ -27,6 +27,8 @@ void setup() {
   for (int i = 0; i < 5; i++) {
     pinMode(AnaloguePin[i], INPUT);
   }
+
+  Serial.println("Setup complete. Starting calibration...");
 }
 
 // the loop routine runs continuously:
@@ -34,21 +36,25 @@ void loop() {
   // Rotate for 10 seconds (1000 iterations with 10ms delay)
   for (int a = 0; a < 1000; a++) {
     OpticalTest();
-    Left(150, 150); // Rotate the robot
+    Left(100, 100); // Rotate the robot
     delay(10);
   }
 
+  // Stop the robot
+  StopMotors();
+
   // Calculate and print the threshold
   Threshold = (sensorMax + sensorMin) / 2; // Midpoint of min and max
+  Serial.println("Calibration complete.");
+  Serial.print("Min Value: ");
+  Serial.println(sensorMin);
+  Serial.print("Max Value: ");
+  Serial.println(sensorMax);
   Serial.print("Threshold: ");
   Serial.println(Threshold);
 
-  // Reset min and max for next calibration if needed
-  sensorMin = 1023;
-  sensorMax = 0;
-
-  // Stop the robot after calibration
-  delay(5000); // Pause for 5 seconds before repeating
+  // Pause before repeating (shortened delay for debugging purposes)
+  delay(5000);
 }
 
 // Function to test optical sensors and update min/max values
@@ -63,6 +69,12 @@ void OpticalTest() {
     if (AnalogueValue[i] > sensorMax) {
       sensorMax = AnalogueValue[i];
     }
+
+    // Debug sensor readings
+    //Serial.print("Sensor ");
+    //Serial.print(i);
+    //Serial.print(": ");
+    //Serial.println(AnalogueValue[i]);
   }
 }
 
@@ -72,4 +84,12 @@ void Left(int turn_right, int turn_left) {
   analogWrite(motor1PWM, turn_right);
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
+}
+
+// Function to stop the robot
+void StopMotors() {
+  analogWrite(motor1PWM, 0); // Stop left motor
+  analogWrite(motor2PWM, 0); // Stop right motor
+  digitalWrite(motor1Phase, LOW);
+  digitalWrite(motor2Phase, LOW);
 }
