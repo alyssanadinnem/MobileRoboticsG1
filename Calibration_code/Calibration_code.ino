@@ -71,10 +71,10 @@ void OpticalTest() {
     }
 
     // Debug sensor readings
-    Serial.print("Sensor ");
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.println(AnalogueValue[i]);
+    //Serial.print("Sensor ");
+    //Serial.print(i);
+    //Serial.print(": ");
+    //Serial.println(AnalogueValue[i]);
   }
 }
 
