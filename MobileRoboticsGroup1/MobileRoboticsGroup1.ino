@@ -5,11 +5,11 @@ int motor2PWM = 39; //right wheel - 2, slower
 int motor2Phase = 20;
 
 //OPTICAL SENSOR 
-int AnalogueValue[5] = {0,0,0,0,0};
-int AnaloguePin[5] = {5,4,6,7,15};
+int AnalogueValue[6] = {0,0,0,0,0,0};
+int AnaloguePin[6] = {5,4,6,7,15,17};
 
 //THRESHOLDS
-int WhiteThreshold = 1000;
+int WhiteThreshold = 2000;
 
 //LEFT OR RIGHT
 int left_or_right = 0;
@@ -18,11 +18,11 @@ int left_or_right = 0;
 int straight_l = 130;
 int straight_r = 125;
 
-int sharp_right_motor_r = 140;
+int sharp_right_motor_r = 120;
 int sharp_right_motor_l = 0;
 
 int sharp_left_motor_r = 0;
-int sharp_left_motor_l = 140
+int sharp_left_motor_l = 120;
 ;
 
 int straighten_left_r = 110;
@@ -31,7 +31,27 @@ int straighten_left_l = 130;
 int straighten_right_r = 130;
 int straighten_right_l = 110;
 
+//DISTANCE
+int dist = 0;
 
+//JUST AT CHECKPOINT OR JUNCTION
+int checkpoint = 0;
+int junction = 0;
+
+//JUST DONE SHARP OR STRAIGHTEN
+int sharp = 0;
+int straighten = 1;
+
+//FUNCTION DECLARATIONS
+void OpticalTest();
+void Distancetest();
+void GoForwards();
+void Left(int turn_right, int turn_left);
+void Right(int turn_right, int turn_left);
+void TankLeft(int turn_right, int turn_left);
+void TankRight(int turn_right, int turn_left);
+void GoBackwards();
+void Stop();
 
 //CASES
 bool BBWBB() { //On white line
@@ -191,33 +211,53 @@ void setup() {
 void loop() {
 
   OpticalTest();
+  Distancetest();
   delay(1);
 
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
+    straighten = 1;
+    sharp = 0;
   }
   else if (BWWBB() || BWBBB()) { 
     Left(straighten_left_l, straighten_left_r);
+    straighten = 1;
+    sharp = 0;
   } 
   else if (WWWBB()) {
     TankLeft(straighten_left_l, straighten_left_r);
+    sharp = 1;
+    straighten = 0;
   }
   else if (WBBBB() || WWBBB()) {
     Left(sharp_left_motor_l, sharp_left_motor_r);
+    sharp = 1;
+    straighten = 0;
   } 
   else if (BBBWW() || BBBBW()) {
     Right(sharp_right_motor_l, sharp_right_motor_r);
+    sharp = 1;
+    straighten = 0;
   } 
   else if (BBWWW()) {
     TankRight(straighten_right_l, straighten_right_r);
+    sharp = 1;
+    straighten = 0;
   }
   else if (BBBWB() || BBWWB()) {
     Right(straighten_right_l, straighten_right_r);
+    straighten = 1;
+    sharp = 0;
   } 
   else if (WWWWWW() || BWWWW() || WWWWB()) {
     Stop();
     delay(2000);
-    GoForwards();
+    if (straighten == 1 && sharp == 0){
+      GoForwards();
+    }
+    else if (sharp == 1 && straighten == 0){
+      Left(sharp_left_motor_r, sharp_left_motor_l);
+    }
   }
   else if (BBBBB()) {
     if (left_or_right == 0) {
@@ -226,6 +266,8 @@ void loop() {
     else{
     Right(sharp_right_motor_l, sharp_right_motor_r);
     }
+    sharp = 1;
+    straighten = 0;
   }
 
   else {
@@ -233,16 +275,24 @@ void loop() {
   }
 }
 
+void Distancetest() {
+  AnalogueValue[5] = analogRead(AnaloguePin[5]);
+  dist = AnalogueValue[5];
+  Serial.print("Distance Sensor Value: ");
+  Serial.println(dist);
+  delay(1);
+}
+
 void OpticalTest() {
   int i;
   for (i=0;i<5;i++)
   {
   AnalogueValue[i]=analogRead(AnaloguePin[i]);
-  Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
-  Serial.print("\t"); //tab over on screen
+  //Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
+  //Serial.print("\t"); //tab over on screen
   if(i==4)
       {
-        Serial.println(""); //carriage return
+        //Serial.println(""); //carriage return
         delay(100); // display new set of readings every 600mS
       }
   }
