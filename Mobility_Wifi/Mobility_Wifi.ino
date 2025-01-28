@@ -38,10 +38,8 @@ WiFiClient client;
 char server[] = "3.250.38.184";
 int port = 8000;
 
-//RESPONSES
+//BUFFER SIZE FOR HTTPS RESPONSE
 #define BUFSIZE 512
-int destination;
-//String response = readResponse(); // read response
 
 //CASES
 bool BBWBB() { //On white line
@@ -200,6 +198,7 @@ void setup() {
   connectToWiFi();
   connect();
   SendMessage();
+  readResponse();
 
 /*
   //TEST HTTP
@@ -221,6 +220,19 @@ client.stop();
 
 // the loop routine runs over and over again continuously:
 void loop() {
+
+  //RESPONSE TEST:
+  int destination;
+  String response = readResponse(); // read response
+  int statusCode = getStatusCode(response); // get status code
+  if (statusCode == 200) {
+    // success, read body
+    String body = getResponseBody(response);
+    // check if at final destination
+    if (!body.equals("Finished")) {
+      destination = body.toInt();
+    }
+  }
 
   //OpticalTest();
   delay(1);
@@ -364,7 +376,7 @@ void connectToWiFi() {
   Serial.println();
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
-} //good
+} //WORKS
 
 bool connect() {
   if (!client.connect(server, port)) {
@@ -373,12 +385,12 @@ bool connect() {
   }
     Serial.println(":)\nConnected to server!");
     return true;
-} //good
+} //WORKS
 
 String SendMessage() {
 
   // post body
-  int position=3;
+  int position=4;
   String postBody("position=");
   postBody += position;
 
@@ -391,9 +403,7 @@ String SendMessage() {
 
   // send post body
   client.println(postBody);
-} //good
-
-/*
+} //WORKS
 
 String readResponse() {
   char buffer[BUFSIZE];
@@ -410,10 +420,8 @@ int getStatusCode(String& response) {
 }
 
 String getResponseBody(String& response) {
-  int split =
-  response.indexOf("\r\n\r\n");
+  int split = response.indexOf("\r\n\r\n");
   String body = response.substring(split+4, response.length());
   body.trim();
   return body;
 }
-*/
