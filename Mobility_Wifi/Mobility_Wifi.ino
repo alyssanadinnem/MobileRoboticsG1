@@ -40,11 +40,8 @@ int port = 8000;
 
 //RESPONSES
 #define BUFSIZE 512
-int destination
-String response = readResponse(); // read response
-
-//STRING TO INTEGER
-String inString = " ";
+int destination;
+//String response = readResponse(); // read response
 
 //CASES
 bool BBWBB() { //On white line
@@ -202,6 +199,24 @@ void setup() {
   //TEST WIFI
   connectToWiFi();
   connect();
+  SendMessage();
+
+/*
+  //TEST HTTP
+int destination;
+String response = readResponse();  // read response
+
+int statusCode = getStatusCode(response); // get status code
+  if (statusCode == 200) {
+    String body = getResponseBody(response); // success, read body
+  if (!body.equals("Finished")) { // check if at final destination
+    destination = body.toInt();
+  }
+}
+
+// disconnect*/
+client.stop();
+
 }
 
 // the loop routine runs over and over again continuously:
@@ -349,7 +364,7 @@ void connectToWiFi() {
   Serial.println();
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
-}
+} //good
 
 bool connect() {
   if (!client.connect(server, port)) {
@@ -358,27 +373,28 @@ bool connect() {
   }
     Serial.println(":)\nConnected to server!");
     return true;
-}
-
+} //good
 
 String SendMessage() {
 
   // post body
-  int position=0;
+  int position=3;
   String postBody("position=");
   postBody += position;
+
   // send post request and headers
-  client.println("POST /api/arrived/afty6723 HTTP/1.1");
+  client.println("POST /api/arrived/afty6723 HTTP/1.1"); //forgot to add gap between url and protocol
   client.println("Content-Type: application/x-www-form-urlencoded");
   client.print("Content-Length: ");
   client.println(postBody.length());
-  client.println("Connection: close");
   client.println();
+
   // send post body
   client.println(postBody);
-}
+} //good
 
 /*
+
 String readResponse() {
   char buffer[BUFSIZE];
   memset(buffer, 0, BUFSIZE);
@@ -387,29 +403,17 @@ String readResponse() {
   return response;
 }
 
+// get status code
 int getStatusCode(String& response) {
   String code = response.substring(9, 12);
   return code.toInt();
 }
 
 String getResponseBody(String& response) {
-  int split = response.indexOf("\r\n\r\n");
+  int split =
+  response.indexOf("\r\n\r\n");
   String body = response.substring(split+4, response.length());
   body.trim();
   return body;
 }
-
-// get status code
-int statusCode = getStatusCode(response);
-  if (statusCode == 200) {
-    // success, read body
-    String body = getResponseBody(response);
-    // check if at final destination
-    if (!body.equals("undefined")) {
-      destination = body.toInt();
-    }
-}
-
-// disconnect
-client.stop();
 */
