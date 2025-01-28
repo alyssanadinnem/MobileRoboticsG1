@@ -18,11 +18,11 @@ int left_or_right = 0;
 int straight_l = 130;
 int straight_r = 125;
 
-int sharp_right_motor_r = 120;
+int sharp_right_motor_r = 130;
 int sharp_right_motor_l = 0;
 
 int sharp_left_motor_r = 0;
-int sharp_left_motor_l = 120;
+int sharp_left_motor_l = 130;
 ;
 
 int straighten_left_r = 110;
@@ -34,13 +34,32 @@ int straighten_right_l = 110;
 //DISTANCE
 int dist = 0;
 
+//ROUTE
+/*int route[] = {0, 3, 2, 4, 5}
+int currentCheckpoint = 0;
+int nextCheckpoint = 0;
+// Directions: 0 = straight, 1 = left, 2 = right, 3 = 180 and straight, -1 = no connection
+int pathDirections[][] = {
+  // 0   1   2   3  4   5  6   7
+  { -1, -1, -1, -1, 0, -1, 0, -1}//0
+  {}//1
+  {}//2
+  {}//3
+  {}//4
+  {}//5
+  {}//6
+  {}//7
+}*/
+
 //JUST AT CHECKPOINT OR JUNCTION
-int checkpoint = 0;
-int junction = 0;
+//int checkpoint = 0;
+//int junction = 0;
 
 //JUST DONE SHARP OR STRAIGHTEN
-int sharp = 0;
-int straighten = 1;
+//int sharp = 0;
+//int straighten = 1;
+
+int checkpoint = 1;
 
 //FUNCTION DECLARATIONS
 void OpticalTest();
@@ -62,7 +81,7 @@ bool BBWBB() { //On white line
           AnalogueValue[4] >= WhiteThreshold);
 }
 
-bool WWWWWW() { //all white
+bool WWWWW() { //all white
   return (AnalogueValue[2] <= WhiteThreshold &&
           AnalogueValue[0] <= WhiteThreshold &&
           AnalogueValue[1] <= WhiteThreshold &&
@@ -216,47 +235,49 @@ void loop() {
 
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
-    straighten = 1;
-    sharp = 0;
+    //straighten = 1;
+    //sharp = 0;
   }
   else if (BWWBB() || BWBBB()) { 
     Left(straighten_left_l, straighten_left_r);
-    straighten = 1;
-    sharp = 0;
+    //straighten = 1;
+    //sharp = 0;
   } 
   else if (WWWBB()) {
     TankLeft(straighten_left_l, straighten_left_r);
-    sharp = 1;
-    straighten = 0;
+    //sharp = 1;
+    //straighten = 0;
   }
   else if (WBBBB() || WWBBB()) {
     Left(sharp_left_motor_l, sharp_left_motor_r);
-    sharp = 1;
-    straighten = 0;
+    //sharp = 1;
+    //straighten = 0;
   } 
   else if (BBBWW() || BBBBW()) {
     Right(sharp_right_motor_l, sharp_right_motor_r);
-    sharp = 1;
-    straighten = 0;
+    //sharp = 1;
+    //straighten = 0;
   } 
   else if (BBWWW()) {
     TankRight(straighten_right_l, straighten_right_r);
-    sharp = 1;
-    straighten = 0;
+    //sharp = 1;
+    //straighten = 0;
   }
   else if (BBBWB() || BBWWB()) {
     Right(straighten_right_l, straighten_right_r);
-    straighten = 1;
-    sharp = 0;
+    //straighten = 1;
+    //sharp = 0;
   } 
-  else if (WWWWWW() || BWWWW() || WWWWB()) {
+  else if (WWWWW() || BWWWW() || WWWWB()) {
     Stop();
     delay(2000);
-    if (straighten == 1 && sharp == 0){
+    if (checkpoint==1){
       GoForwards();
+      checkpoint-=1;
     }
-    else if (sharp == 1 && straighten == 0){
+    else if (checkpoint==0){
       Left(sharp_left_motor_r, sharp_left_motor_l);
+      delay(900);
     }
   }
   else if (BBBBB()) {
@@ -266,8 +287,8 @@ void loop() {
     else{
     Right(sharp_right_motor_l, sharp_right_motor_r);
     }
-    sharp = 1;
-    straighten = 0;
+    //sharp = 1;
+    //straighten = 0;
   }
 
   else {
