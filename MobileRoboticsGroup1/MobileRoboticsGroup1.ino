@@ -37,7 +37,7 @@ int tank_turn = 135;
 int dist = 0;
 
 //ROUTE
-int route[] = {0, 6, 1, 7, 3};
+int route[] = {0, 6, 1, 7, 3, 7, 4, 0, 4, 7, 5};
 int previousPosition = 4;
 int currentPosition = 0;
 int nextPosition = 6;
@@ -47,14 +47,6 @@ int a = 0;
   left=1
   right=2
   180+straight=3*/
-
-//JUST AT CHECKPOINT OR JUNCTION
-//int checkpoint = 0;
-//int junction = 0;
-
-//JUST DONE SHARP OR STRAIGHTEN
-//int sharp = 0;
-//int straighten = 1;
 
 //FUNCTION DECLARATIONS
 void OpticalTest();
@@ -618,38 +610,24 @@ void loop() {
 
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
-    //straighten = 1;
-    //sharp = 0;
   }
   else if (BWWBB() || BWBBB()) { 
     Left(straighten_left_l, straighten_left_r);
-    //straighten = 1;
-    //sharp = 0;
   }
   else if (WWWBB()) {
     Left(straighten_left_l, straighten_left_r);
-    //sharp = 1;
-    //straighten = 0;
   }
   else if (WBBBB() || WWBBB()) {
     Left(sharp_left_motor_l, sharp_left_motor_r);
-    //sharp = 1;
-    //straighten = 0;
   }
   else if (BBBWW() || BBBBW()) {
     Right(sharp_right_motor_l, sharp_right_motor_r);
-    //sharp = 1;
-    //straighten = 0;
   }
   else if (BBWWW()) {
     Right(straighten_right_l, straighten_right_r);
-    //sharp = 1;
-    //straighten = 0;
   }
   else if (BBBWB() || BBWWB()) {
     Right(straighten_right_l, straighten_right_r);
-    //straighten = 1;
-    //sharp = 0;
   }
   else if (WWWWW() || BWWWW() || WWWWB()) {
     Stop();
@@ -674,7 +652,7 @@ void loop() {
     }
     previousPosition = currentPosition;
     a++;
-    if (a>=5){
+    if (a>=11){
       Stop();
       delay(9999999999);
     }
@@ -686,10 +664,7 @@ void loop() {
     else{
     Right(sharp_right_motor_l, sharp_right_motor_r);
     }
-    //sharp = 1;
-    //straighten = 0;
   }
-
   else {
     Stop();
   }
