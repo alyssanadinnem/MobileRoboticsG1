@@ -1,5 +1,4 @@
 #include <WiFi.h> //WIFI LIBRARY
-#include <string>
 
 //MOTOR
 int motor1PWM = 37; //left wheel - 1
@@ -194,47 +193,33 @@ void setup() {
     pinMode(AnaloguePin[i], INPUT);
   }
 
-  //TEST WIFI
+  //WIFI
   connectToWiFi();
   connect();
-  SendMessage();
-  readResponse();
 
-/*
-  //TEST HTTP
-int destination;
-String response = readResponse();  // read response
+  //COMMENT OUT FOR NOW
+  /*
 
-int statusCode = getStatusCode(response); // get status code
+  //WIFI - COMMENT OUT
+  int destination;
+  String response = readResponse();  // read response
+  int statusCode = getStatusCode(response); // get status code
   if (statusCode == 200) {
     String body = getResponseBody(response); // success, read body
   if (!body.equals("Finished")) { // check if at final destination
     destination = body.toInt();
+    }
   }
-}
+  client.stop();
+  */
 
-// disconnect*/
-client.stop();
-
+  //SendMessage();
 }
 
 // the loop routine runs over and over again continuously:
 void loop() {
 
-  //RESPONSE TEST:
-  int destination;
-  String response = readResponse(); // read response
-  int statusCode = getStatusCode(response); // get status code
-  if (statusCode == 200) {
-    // success, read body
-    String body = getResponseBody(response);
-    // check if at final destination
-    if (!body.equals("Finished")) {
-      destination = body.toInt();
-    }
-  }
-
-  //OpticalTest();
+  OpticalTest();
   delay(1);
 
   if (BBWBB() || WBBBW() || BWWWB()) {
@@ -260,6 +245,7 @@ void loop() {
   } 
   else if (WWWWWW() || BWWWW() || WWWWB()) {
     Stop();
+    SendMessage();
     delay(2000);
     GoForwards();
   }
@@ -271,14 +257,12 @@ void loop() {
     Right(sharp_right_motor_l, sharp_right_motor_r);
     }
   }
-
   else {
     Stop();
   }
+  
+  //client.stop();
 }
-
-
-//////////TESTS
 
 void OpticalTest() {
   int i;
@@ -294,8 +278,6 @@ void OpticalTest() {
       }
   }
 }
-
-////////MOBILITY FUNCTIONS
 
 void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
@@ -390,7 +372,7 @@ bool connect() {
 String SendMessage() {
 
   // post body
-  int position=4;
+  int position = 0;
   String postBody("position=");
   postBody += position;
 
@@ -408,7 +390,7 @@ String SendMessage() {
 String readResponse() {
   char buffer[BUFSIZE];
   memset(buffer, 0, BUFSIZE);
-  client.readBytes(buffer, BUFSIZE);
+  client.readBytes(buffer, BUFSIZE); //blocking call
   String response(buffer);
   return response;
 }
