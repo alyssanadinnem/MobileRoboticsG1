@@ -19,21 +19,26 @@ int left_or_right = 0;
 //SPEED VARIABLES
 int straight_l = 110;
 int straight_r = 105;
+
 int sharp_right_motor_r = 135;
 int sharp_right_motor_l = 0;
+
 int sharp_left_motor_r = 0;
 int sharp_left_motor_l = 135;
+
 int straighten_left_r = 115;
 int straighten_left_l = 135;
+
 int straighten_right_r = 135;
 int straighten_right_l = 115;
+
 int tank_turn = 135;
 
 //DISTANCE
 int dist = 0;
 
 //ROUTE
-int route[] = {0, 6, 2, 3};
+int route[] = {0, 6, 1, 7, 3, 7, 4, 0, 4, 7, 5};
 int previousPosition = 4;
 int currentPosition = 0;
 int nextPosition = 6;
@@ -225,7 +230,7 @@ void setup() {
 
   //WIFI
   connectToWiFi();
-  connect();  
+  connect();
 }
 
 // the loop routine runs over and over again continuously:
@@ -242,7 +247,6 @@ void loop() {
   switch (currentPosition) {
     case 0:
       Serial.println("Current Position: 0");
-      current_position = 0;
       switch (nextPosition) {
         case 4:
           Serial.println("Next Position: 4");
@@ -280,7 +284,6 @@ void loop() {
 
     case 1:
       Serial.println("Current Position: 1");
-      current_position = 1;
       switch (nextPosition) {
         case 6:
           Serial.println("Next Position: 6");
@@ -318,7 +321,6 @@ void loop() {
       
     case 2:
       Serial.println("Current Position: 2");
-      current_position = 2;
       switch (nextPosition) {
         case 3:
           Serial.println("Next Position: 3");
@@ -356,7 +358,6 @@ void loop() {
 
     case 3:
       Serial.println("Current Position: 3");
-      current_position = 3;
       switch (nextPosition) {
         case 2:
           Serial.println("Next Position: 2");
@@ -394,7 +395,6 @@ void loop() {
 
     case 4:
       Serial.println("Current Position: 4");
-      current_position = 4;
       switch (nextPosition) {
         case 0:
           Serial.println("Next Position: 0");
@@ -432,7 +432,6 @@ void loop() {
 
     case 5:
       Serial.println("Current Position: 5");
-      current_position = 5;
       switch (nextPosition) {
         case 7:
           Serial.println("Next Position: 7");
@@ -623,6 +622,7 @@ void loop() {
       }
       break;
 
+
     default:
       Serial.println("Invalid current position");
       break;
@@ -650,7 +650,6 @@ void loop() {
     Right(straighten_right_l, straighten_right_r);
   }
   else if (WWWWW() || BWWWW() || WWWWB()) {
-    SendMessage(current_position);
     Stop();
     delay(2000);
     if (action==3){
@@ -691,8 +690,6 @@ void loop() {
   }
 }
 
-////////////////TESTS
-
 void Distancetest() {
   AnalogueValue[5] = analogRead(AnaloguePin[5]);
   dist = AnalogueValue[5];
@@ -716,7 +713,7 @@ void OpticalTest() {
   }
 }
 
-////////////////MOBILITY FUNCTIONS
+///////////MOBILITY FUNCTIONS
 
 void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
