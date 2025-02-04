@@ -1,3 +1,5 @@
+#include <WiFi.h> //WIFI LIBRARY
+
 //MOTOR
 int motor1PWM = 37; //left wheel - 1
 int motor1Phase = 38;
@@ -17,27 +19,21 @@ int left_or_right = 0;
 //SPEED VARIABLES
 int straight_l = 110;
 int straight_r = 105;
-
 int sharp_right_motor_r = 135;
 int sharp_right_motor_l = 0;
-
 int sharp_left_motor_r = 0;
 int sharp_left_motor_l = 135;
-;
-
 int straighten_left_r = 115;
 int straighten_left_l = 135;
-
 int straighten_right_r = 135;
 int straighten_right_l = 115;
-
 int tank_turn = 135;
 
 //DISTANCE
 int dist = 0;
 
 //ROUTE
-int route[] = {0, 6, 1, 7, 3, 7, 4, 0, 4, 7, 5};
+int route[] = {0, 6, 2, 3};
 int previousPosition = 4;
 int currentPosition = 0;
 int nextPosition = 6;
@@ -47,6 +43,21 @@ int a = 0;
   left=1
   right=2
   180+straight=3*/
+
+//WIFI DETAILS
+char ssid[] = "iot";
+char password[] = "unmercenarily56aweto";
+WiFiClient client;
+
+//SERVER DETAILS
+char server[] = "3.250.38.184";
+int port = 8000;
+
+//BUFFER SIZE FOR HTTPS RESPONSE
+#define BUFSIZE 512
+
+//POSITIONS
+int current_position;
 
 //FUNCTION DECLARATIONS
 void OpticalTest();
@@ -211,6 +222,10 @@ void setup() {
   for(i=0; i<5; i++) {
     pinMode(AnaloguePin[i], INPUT);
   }
+
+  //WIFI
+  connectToWiFi();
+  connect();  
 }
 
 // the loop routine runs over and over again continuously:
@@ -227,6 +242,7 @@ void loop() {
   switch (currentPosition) {
     case 0:
       Serial.println("Current Position: 0");
+      current_position = 0;
       switch (nextPosition) {
         case 4:
           Serial.println("Next Position: 4");
@@ -264,6 +280,7 @@ void loop() {
 
     case 1:
       Serial.println("Current Position: 1");
+      current_position = 1;
       switch (nextPosition) {
         case 6:
           Serial.println("Next Position: 6");
@@ -301,6 +318,7 @@ void loop() {
       
     case 2:
       Serial.println("Current Position: 2");
+      current_position = 2;
       switch (nextPosition) {
         case 3:
           Serial.println("Next Position: 3");
@@ -338,6 +356,7 @@ void loop() {
 
     case 3:
       Serial.println("Current Position: 3");
+      current_position = 3;
       switch (nextPosition) {
         case 2:
           Serial.println("Next Position: 2");
@@ -375,6 +394,7 @@ void loop() {
 
     case 4:
       Serial.println("Current Position: 4");
+      current_position = 4;
       switch (nextPosition) {
         case 0:
           Serial.println("Next Position: 0");
@@ -412,6 +432,7 @@ void loop() {
 
     case 5:
       Serial.println("Current Position: 5");
+      current_position = 5;
       switch (nextPosition) {
         case 7:
           Serial.println("Next Position: 7");
@@ -602,7 +623,6 @@ void loop() {
       }
       break;
 
-
     default:
       Serial.println("Invalid current position");
       break;
@@ -630,6 +650,7 @@ void loop() {
     Right(straighten_right_l, straighten_right_r);
   }
   else if (WWWWW() || BWWWW() || WWWWB()) {
+    SendMessage(current_position);
     Stop();
     delay(2000);
     if (action==3){
@@ -670,6 +691,8 @@ void loop() {
   }
 }
 
+////////////////TESTS
+
 void Distancetest() {
   AnalogueValue[5] = analogRead(AnaloguePin[5]);
   dist = AnalogueValue[5];
@@ -692,6 +715,8 @@ void OpticalTest() {
       }
   }
 }
+
+////////////////MOBILITY FUNCTIONS
 
 void GoForwards() {
   digitalWrite(motor1Phase, HIGH); //forward
@@ -745,4 +770,79 @@ void GoBackwards() {
 void Stop() {
   analogWrite(motor1PWM, 0); 
   analogWrite(motor2PWM, 0);
+}
+
+///////////WIFI FUNCTIONS
+
+void connectToWiFi() {
+  Serial.print("Connecting to network: ");
+  Serial.print(ssid);
+  Serial.flush();
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    Serial.flush();
+    delay(300);
+  }
+  Serial.println("Connected");
+  Serial.print("Obtaining IP address");
+  Serial.flush();
+
+  while (WiFi.localIP() == INADDR_NONE) {
+    Serial.print(".");
+    Serial.flush();
+    delay(300);
+  }
+  
+  Serial.println();
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+} //WORKS
+
+bool connect() {
+  if (!client.connect(server, port)) {
+    Serial.println(":(\nError connecting to server.");
+    return false;
+  }
+    Serial.println(":)\nConnected to server!");
+    return true;
+} //WORKS
+
+String SendMessage(int current_position) {
+
+  // post body
+  int position = current_position;
+  String postBody("position=");
+  postBody += position;
+
+  // send post request and headers
+  client.println("POST /api/arrived/afty6723 HTTP/1.1"); //forgot to add gap between url and protocol
+  client.println("Content-Type: application/x-www-form-urlencoded");
+  client.print("Content-Length: ");
+  client.println(postBody.length());
+  client.println();
+
+  // send post body
+  client.println(postBody);
+} //WORKS
+
+String readResponse() {
+  char buffer[BUFSIZE];
+  memset(buffer, 0, BUFSIZE);
+  client.readBytes(buffer, BUFSIZE); //blocking call
+  String response(buffer);
+  return response;
+}
+
+// get status code
+int getStatusCode(String& response) {
+  String code = response.substring(9, 12);
+  return code.toInt();
+}
+
+String getResponseBody(String& response) {
+  int split = response.indexOf("\r\n\r\n");
+  String body = response.substring(split+4, response.length());
+  body.trim();
+  return body;
 }
