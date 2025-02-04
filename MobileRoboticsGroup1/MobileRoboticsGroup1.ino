@@ -229,35 +229,35 @@ void loop() {
       Serial.println("Current Position: 0");
       switch (nextPosition) {
         case 4:
-          Serial.println("Next Position: 4");
+          //Serial.println("Next Position: 4");
           switch (previousPosition) {
             case 4:
-              Serial.println("Previous Position: 4");
-              Serial.println("Action: Do a 180 and go straight to node 0");
+              //Serial.println("Previous Position: 4");
+              //Serial.println("Action: Do a 180 and go straight to node 0");
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 4");
+              //Serial.println("Action: Go straight to node 4");
               action = 0;
               break;
           }
           break;
         case 6:
-          Serial.println("Next Position: 6");
+          //Serial.println("Next Position: 6");
           switch (previousPosition) {
             case 6:
-              Serial.println("Previous Position: 6");
-              Serial.println("Action: Do a 180 and go straight to node 0");
+              //Serial.println("Previous Position: 6");
+              //Serial.println("Action: Do a 180 and go straight to node 0");
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 6");
+              //Serial.println("Action: Go straight to node 6");
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 0");
+          //Serial.println("Invalid next position for current node 0");
           break;
       }
       break;
@@ -266,35 +266,35 @@ void loop() {
       Serial.println("Current Position: 1");
       switch (nextPosition) {
         case 6:
-          Serial.println("Next Position: 6");
+          //Serial.println("Next Position: 6");
           switch (previousPosition) {
             case 6:
-              Serial.println("Previous Position: 6");
-              Serial.println("Action: Do a 180 and go straight to node 6");
+              //Serial.println("Previous Position: 6");
+              //Serial.println("Action: Do a 180 and go straight to node 6");
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 6");
+              //Serial.println("Action: Go straight to node 6");
               action = 0;
               break;
           }
           break;
         case 7:
-          Serial.println("Next Position: 7");
+          //Serial.println("Next Position: 7");
           switch (previousPosition) {
             case 7:
-              Serial.println("Previous Position: 7");
-              Serial.println("Action: Do a 180 and go straight to node 7");
+              //Serial.println("Previous Position: 7");
+              //Serial.println("Action: Do a 180 and go straight to node 7");
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 7");
+              //Serial.println("Action: Go straight to node 7");
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 1");
+          //Serial.println("Invalid next position for current node 1");
           break;
       }
       break;
@@ -377,35 +377,35 @@ void loop() {
       Serial.println("Current Position: 4");
       switch (nextPosition) {
         case 0:
-          Serial.println("Next Position: 0");
+          //Serial.println("Next Position: 0");
           switch (previousPosition) {
             case 0:
-              Serial.println("Previous Position: 0");
-              Serial.println("Action: Do a 180 and go straight to node 0");
+              //Serial.println("Previous Position: 0");
+              //Serial.println("Action: Do a 180 and go straight to node 0");
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 0");
+              //Serial.println("Action: Go straight to node 0");
               action = 0;
               break;
           }
           break;
         case 7:
-          Serial.println("Next Position: 7");
+          //Serial.println("Next Position: 7");
           switch (previousPosition) {
             case 7:
-              Serial.println("Previous Position: 7");
-              Serial.println("Action: Do a 180 and go straight to node 7");
+              //Serial.println("Previous Position: 7");
+              //Serial.println("Action: Do a 180 and go straight to node 7");
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 7");
+              //Serial.println("Action: Go straight to node 7");
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 4");
+          //Serial.println("Invalid next position for current node 4");
           break;
       }
       break;
@@ -435,64 +435,64 @@ void loop() {
       Serial.println("Current Position: 6");
       switch (nextPosition) {
         case 0:
-          Serial.println("Next Position: 0");
+          //Serial.println("Next Position: 0");
           switch (previousPosition) {
             case 0:
-              Serial.println("Previous Position: 0");
-              Serial.println("Action: Do a 180 and go straight to node 0");
+              //Serial.println("Previous Position: 0");
+              //Serial.println("Action: Do a 180 and go straight to node 0");
               action = 3;
               break;
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Turn right");
+              //Serial.println("Previous Position: 1");
+              //Serial.println("Action: Turn right");
               action = 2;
               break;
             default:
-              Serial.println("Action: Go straight to node 0");
+              //Serial.println("Action: Go straight to node 0");
               action = 0;
               break;
           }
           break;
         case 1:
-          Serial.println("Next Position: 1");
+          //Serial.println("Next Position: 1");
           switch (previousPosition) {
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Do a 180 and go straight to node 1");
+              //Serial.println("Previous Position: 1");
+              //Serial.println("Action: Do a 180 and go straight to node 1");
               action = 3;
               break;
             case 0:
-              Serial.println("Previous Position: 0");
-              Serial.println("Action: Turn left");
+              //Serial.println("Previous Position: 0");
+              //Serial.println("Action: Turn left");
               action = 1;
               break;
             default:
-              Serial.println("Action: Turn right");
+              //Serial.println("Action: Turn right");
               action = 2;
               break;
           }
           break;
         case 2:
-          Serial.println("Next Position: 2");
+          //Serial.println("Next Position: 2");
           switch (previousPosition) {
             case 2:
-              Serial.println("Previous Position: 2");
-              Serial.println("Action: Do a 180 and go straight to node 2");
+              //Serial.println("Previous Position: 2");
+              //Serial.println("Action: Do a 180 and go straight to node 2");
               action = 3;
               break;
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Turn left");
+              //Serial.println("Previous Position: 1");
+              //Serial.println("Action: Turn left");
               action = 1;
               break;
             default:
-              Serial.println("Action: Go straight");
+              //Serial.println("Action: Go straight");
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 6");
+          //Serial.println("Invalid next position for current node 6");
           break;
       }
       break;
@@ -673,8 +673,8 @@ void loop() {
 void Distancetest() {
   AnalogueValue[5] = analogRead(AnaloguePin[5]);
   dist = AnalogueValue[5];
-  Serial.print("Distance Sensor Value: ");
-  Serial.println(dist);
+  //Serial.print("Distance Sensor Value: ");
+  //Serial.println(dist);
   delay(1);
 }
 
