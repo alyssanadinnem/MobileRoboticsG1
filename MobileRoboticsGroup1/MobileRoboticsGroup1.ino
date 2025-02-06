@@ -19,26 +19,21 @@ int left_or_right = 0;
 //SPEED VARIABLES
 int straight_l = 110;
 int straight_r = 105;
-
 int sharp_right_motor_r = 135;
 int sharp_right_motor_l = 0;
-
 int sharp_left_motor_r = 0;
 int sharp_left_motor_l = 135;
-
 int straighten_left_r = 115;
 int straighten_left_l = 135;
-
 int straighten_right_r = 135;
 int straighten_right_l = 115;
-
 int tank_turn = 135;
 
 //DISTANCE
 int dist = 0;
 
 //ROUTE
-int route[] = {0, 6, 1, 7, 3, 7, 4, 0, 4, 7, 5};
+int route[] = {0,6,1,7,3,7,4,0,4,7,5};
 int previousPosition = 4;
 int currentPosition = 0;
 int nextPosition = 6;
@@ -63,6 +58,7 @@ int port = 8000;
 
 //POSITIONS
 int current_position;
+int destination;
 
 //FUNCTION DECLARATIONS
 void OpticalTest();
@@ -246,204 +242,204 @@ void loop() {
   // Determine the action based on current, next, and previous positions
   switch (currentPosition) {
     case 0:
-      Serial.println("Current Position: 0");
+      Serial.printf("%d Current Position: 0\n", __LINE__);
       switch (nextPosition) {
         case 4:
-          Serial.println("Next Position: 4");
+          Serial.printf("%d Next Position: 4\n", __LINE__);
           switch (previousPosition) {
             case 4:
-              Serial.println("Previous Position: 4");
-              Serial.println("Action: Do a 180 and go straight to node 0");
+              Serial.printf("%d Previous Position: 4\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 0\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 4");
+              Serial.printf("%d Action: Go straight to node 4\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 6:
-          Serial.println("Next Position: 6");
+          Serial.printf("%d Next Position: 6\n", __LINE__);
           switch (previousPosition) {
             case 6:
-              Serial.println("Previous Position: 6");
-              Serial.println("Action: Do a 180 and go straight to node 0");
+              Serial.printf("%d Previous Position: 6\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 0\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 6");
+              Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 0");
+          Serial.printf("%d Invalid next position for current node 0\n", __LINE__);
           break;
       }
       break;
 
     case 1:
-      Serial.println("Current Position: 1");
+      Serial.printf("%d Current Position: 1\n", __LINE__);
       switch (nextPosition) {
         case 6:
-          Serial.println("Next Position: 6");
+          Serial.printf("%d Next Position: 6\n", __LINE__);
           switch (previousPosition) {
             case 6:
-              Serial.println("Previous Position: 6");
-              Serial.println("Action: Do a 180 and go straight to node 6");
+              Serial.printf("%d Previous Position: 6\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 6\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 6");
+              Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 7:
-          Serial.println("Next Position: 7");
+          Serial.printf("%d Next Position: 7\n", __LINE__);
           switch (previousPosition) {
             case 7:
-              Serial.println("Previous Position: 7");
-              Serial.println("Action: Do a 180 and go straight to node 7");
+              Serial.printf("%d Previous Position: 7\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 7\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 7");
+              Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 1");
+          Serial.printf("%d Invalid next position for current node 1\n", __LINE__);
           break;
       }
       break;
       
     case 2:
-      Serial.println("Current Position: 2");
+      Serial.printf("%d Current Position: 2\n", __LINE__);
       switch (nextPosition) {
         case 3:
-          Serial.println("Next Position: 3");
+          Serial.printf("%d Next Position: 3\n", __LINE__);
           switch (previousPosition) {
             case 3:
-              Serial.println("Previous Position: 3");
-              Serial.println("Action: Do a 180 and go straight to node 3");
+              Serial.printf("%d Previous Position: 3\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 3\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 3");
+              Serial.printf("%d Action: Go straight to node 3\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 6:
-          Serial.println("Next Position: 6");
+          Serial.printf("%d Next Position: 6\n", __LINE__);
           switch (previousPosition) {
             case 6:
-              Serial.println("Previous Position: 6");
-              Serial.println("Action: Do a 180 and go straight to node 6");
+              Serial.printf("%d Previous Position: 6\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 6\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 6");
+              Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 2");
+          Serial.printf("%d Invalid next position for current node 2\n", __LINE__);
           break;
       }
       break;
 
     case 3:
-      Serial.println("Current Position: 3");
+      Serial.printf("%d Current Position: 3\n", __LINE__);
       switch (nextPosition) {
         case 2:
-          Serial.println("Next Position: 2");
+          Serial.printf("%d Next Position: 2\n", __LINE__);
           switch (previousPosition) {
             case 2:
-              Serial.println("Previous Position: 2");
-              Serial.println("Action: Do a 180 and go straight to node 2");
+              Serial.printf("%d Previous Position: 2\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 2\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 2");
+              Serial.printf("%d Action: Go straight to node 2\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 7:
-          Serial.println("Next Position: 7");
+          Serial.printf("%d Next Position: 7\n", __LINE__);
           switch (previousPosition) {
             case 7:
-              Serial.println("Previous Position: 7");
-              Serial.println("Action: Do a 180 and go straight to node 7");
+              Serial.printf("%d Previous Position: 7\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 7\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 7");
+              Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 3");
+          Serial.printf("%d Invalid next position for current node 3\n", __LINE__);
           break;
       }
       break;
 
     case 4:
-      Serial.println("Current Position: 4");
+      Serial.printf("%d Current Position: 4\n", __LINE__);
       switch (nextPosition) {
         case 0:
-          Serial.println("Next Position: 0");
+          Serial.printf("%d Next Position: 0\n", __LINE__);
           switch (previousPosition) {
             case 0:
-              Serial.println("Previous Position: 0");
-              Serial.println("Action: Do a 180 and go straight to node 0");
+              Serial.printf("%d Previous Position: 0\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 0\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 0");
+              Serial.printf("%d Action: Go straight to node 0\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 7:
-          Serial.println("Next Position: 7");
+          Serial.printf("%d Next Position: 7\n", __LINE__);
           switch (previousPosition) {
             case 7:
-              Serial.println("Previous Position: 7");
-              Serial.println("Action: Do a 180 and go straight to node 7");
+              Serial.printf("%d Previous Position: 7\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 7\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Action: Go straight to node 7");
+              Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 4");
+          Serial.printf("%d Invalid next position for current node 4\n", __LINE__);
           break;
       }
       break;
 
     case 5:
-      Serial.println("Current Position: 5");
+      Serial.printf("%d Current Position: 5\n", __LINE__);
       switch (nextPosition) {
         case 7:
-          Serial.println("Next Position: 7");
+          Serial.printf("%d Next Position: 7\n", __LINE__);
           switch (previousPosition) {
             case 7:
-              Serial.println("Previous Position: 7");
-              Serial.println("Action: Do a 180 and go straight to node 7");
+              Serial.printf("%d Previous Position: 7\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 7\n", __LINE__);
               action = 3;
               break;
             default:
-              Serial.println("Previous Position: 7");
-              Serial.println("Action: Do a 180 and go straight to node 7");
+              Serial.printf("%d Previous Position: 7\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 7\n", __LINE__);
               action = 3;
               break;
           }
@@ -452,179 +448,179 @@ void loop() {
       break;
 
     case 6:
-      Serial.println("Current Position: 6");
+      Serial.printf("%d Current Position: 6\n", __LINE__);
       switch (nextPosition) {
         case 0:
-          Serial.println("Next Position: 0");
+          Serial.printf("%d Next Position: 0\n", __LINE__);
           switch (previousPosition) {
             case 0:
-              Serial.println("Previous Position: 0");
-              Serial.println("Action: Do a 180 and go straight to node 0");
+              Serial.printf("%d Previous Position: 0\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 0\n", __LINE__);
               action = 3;
               break;
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Turn right");
+              Serial.printf("%d Previous Position: 1\n", __LINE__);
+              Serial.printf("%d Action: Turn right\n", __LINE__);
               action = 2;
               break;
             default:
-              Serial.println("Action: Go straight to node 0");
+              Serial.printf("%d Action: Go straight to node 0\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 1:
-          Serial.println("Next Position: 1");
+          Serial.printf("%d Next Position: 1\n", __LINE__);
           switch (previousPosition) {
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Do a 180 and go straight to node 1");
+              Serial.printf("%d Previous Position: 1\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 1\n", __LINE__);
               action = 3;
               break;
             case 0:
-              Serial.println("Previous Position: 0");
-              Serial.println("Action: Turn left");
+              Serial.printf("%d Previous Position: 0\n", __LINE__);
+              Serial.printf("%d Action: Turn left\n", __LINE__);
               action = 1;
               break;
             default:
-              Serial.println("Action: Turn right");
+              Serial.printf("%d Action: Turn right\n", __LINE__);
               action = 2;
               break;
           }
           break;
         case 2:
-          Serial.println("Next Position: 2");
+          Serial.printf("%d Next Position: 2\n", __LINE__);
           switch (previousPosition) {
             case 2:
-              Serial.println("Previous Position: 2");
-              Serial.println("Action: Do a 180 and go straight to node 2");
+              Serial.printf("%d Previous Position: 2\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 2\n", __LINE__);
               action = 3;
               break;
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Turn left");
+              Serial.printf("%d Previous Position: 1\n", __LINE__);
+              Serial.printf("%d Action: Turn left\n", __LINE__);
               action = 1;
               break;
             default:
-              Serial.println("Action: Go straight");
+              Serial.printf("%d Action: Go straight\n", __LINE__);
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 6");
+          Serial.printf("%d Invalid next position for current node 6\n", __LINE__);
           break;
       }
       break;
 
     case 7:
-      Serial.println("Current Position: 7");
+      Serial.printf("%d Current Position: 7\n", __LINE__);
       switch (nextPosition) {
         case 1:
-          Serial.println("Next Position: 1");
+          Serial.printf("%d Next Position: 1\n", __LINE__);
           switch (previousPosition) {
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Do a 180 and go straight to node 1");
+              Serial.printf("%d Previous Position: 1\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 1\n", __LINE__);
               action = 3;
               break;
             case 3:
-              Serial.println("Previous Position: 3");
-              Serial.println("Action: Turn left");
+              Serial.printf("%d Previous Position: 3\n", __LINE__);
+              Serial.printf("%d Action: Turn left\n", __LINE__);
               action = 1;
               break;
             case 4:
-              Serial.println("Previous Position: 4");
-              Serial.println("Action: Turn right");
+              Serial.printf("%d Previous Position: 4\n", __LINE__);
+              Serial.printf("%d Action: Turn right\n", __LINE__);
               action = 2;
               break;
             default:
-              Serial.println("Action: Go straight to node 1");
+              Serial.printf("%d Action: Go straight to node 1\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 3:
-          Serial.println("Next Position: 3");
+          Serial.printf("%d Next Position: 3\n", __LINE__);
           switch (previousPosition) {
             case 3:
-              Serial.println("Previous Position: 3");
-              Serial.println("Action: Do a 180 and go straight to node 3");
+              Serial.printf("%d Previous Position: 3\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 3\n", __LINE__);
               action = 3;
               break;
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Turn right");
+              Serial.printf("%d Previous Position: 1\n", __LINE__);
+              Serial.printf("%d Action: Turn right\n", __LINE__);
               action = 2;
               break;
             case 5:
-              Serial.println("Previous Position: 5");
-              Serial.println("Action: Turn left");
+              Serial.printf("%d Previous Position: 5\n", __LINE__);
+              Serial.printf("%d Action: Turn left\n", __LINE__);
               action = 1;
               break;
             default:
-              Serial.println("Action: Go straight");
+              Serial.printf("%d Action: Go straight\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 4:
-          Serial.println("Next Position: 4");
+          Serial.printf("%d Next Position: 4\n", __LINE__);
           switch (previousPosition) {
             case 4:
-              Serial.println("Previous Position: 4");
-              Serial.println("Action: Do a 180 and go straight to node 4");
+              Serial.printf("%d Previous Position: 4\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 4\n", __LINE__);
               action = 3;
               break;
             case 1:
-              Serial.println("Previous Position: 1");
-              Serial.println("Action: Turn left");
+              Serial.printf("%d Previous Position: 1\n", __LINE__);
+              Serial.printf("%d Action: Turn left\n", __LINE__);
               action = 1;
               break;
             case 5:
-              Serial.println("Previous Position: 5");
-              Serial.println("Action: Turn right");
+              Serial.printf("%d Previous Position: 5\n", __LINE__);
+              Serial.printf("%d Action: Turn right\n", __LINE__);
               action = 2;
               break;
             default:
-              Serial.println("Action: Go straight");
+              Serial.printf("%d Action: Go straight\n", __LINE__);
               action = 0;
               break;
           }
           break;
         case 5:
-          Serial.println("Next Position: 5");
+          Serial.printf("%d Next Position: 5\n", __LINE__);
           switch (previousPosition) {
             case 5:
-              Serial.println("Previous Position: 5");
-              Serial.println("Action: Do a 180 and go straight to node 5");
+              Serial.printf("%d Previous Position: 5\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 5\n", __LINE__);
               action = 3;
               break;
             case 3:
-              Serial.println("Previous Position: 3");
-              Serial.println("Action: Turn right");
+              Serial.printf("%d Previous Position: 3\n", __LINE__);
+              Serial.printf("%d Action: Turn right\n", __LINE__);
               action = 2;
               break;
             case 4:
-              Serial.println("Previous Position: 4");
-              Serial.println("Action: Turn left");
+              Serial.printf("%d Previous Position: 4\n", __LINE__);
+              Serial.printf("%d Action: Turn left\n", __LINE__);
               action = 1;
               break;
             default:
-              Serial.println("Action: Go straight");
+              Serial.printf("%d Action: Go straight\n", __LINE__);
               action = 0;
               break;
           }
           break;
         default:
-          Serial.println("Invalid next position for current node 4");
+          Serial.printf("%d Invalid next position for current node 4\n", __LINE__);
           break;
       }
       break;
 
 
     default:
-      Serial.println("Invalid current position");
+      Serial.printf("%d Invalid current position\n", __LINE__);
       break;
   }
 
@@ -651,6 +647,9 @@ void loop() {
   }
   else if (WWWWW() || BWWWW() || WWWWB()) {
     Stop();
+    Serial.print("Sending Message...");
+    //SendMessage(currentPosition);
+    //printResponses();
     delay(2000);
     if (action==3){
       TankLeft(tank_turn, tank_turn);
@@ -674,7 +673,6 @@ void loop() {
     a++;
     if (a>=11){
       Stop();
-      delay(9999999999);
     }
   }
   else if (BBBBB()) {
@@ -821,6 +819,8 @@ String SendMessage(int current_position) {
 
   // send post body
   client.println(postBody);
+  Serial.print("Sent Position: ");
+  Serial.println(position);
 } //WORKS
 
 String readResponse() {
@@ -843,3 +843,22 @@ String getResponseBody(String& response) {
   body.trim();
   return body;
 }
+
+void printResponses() {
+  String response = readResponse(); // read response
+  int statusCode = getStatusCode(response); // get status code
+    if (statusCode == 200) {
+    // success, read body
+    String body = getResponseBody(response);
+    // check if at final destination
+    if (!body.equals("Finished")) {
+      destination = body.toInt(); 
+    }
+
+    Serial.println("STATUS CODE: ");
+    Serial.print(statusCode);
+    Serial.println("RESPONSE: ");
+    Serial.print(response);
+  }
+}
+
