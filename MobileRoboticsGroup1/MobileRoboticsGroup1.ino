@@ -1,22 +1,22 @@
-#include <WiFi.h> //WIFI LIBRARY
+#include <WiFi.h> // WIFI LIBRARY
 
-//MOTOR
-int motor1PWM = 37; //left wheel - 1
+// MOTOR PINS
+int motor1PWM = 37; // LEFT WHEEL: "1"
 int motor1Phase = 38;
-int motor2PWM = 39; //right wheel - 2, slower
+int motor2PWM = 39; // RIGHT WHEEL: "2"
 int motor2Phase = 20;
 
-//OPTICAL SENSOR 
+// OPTICAL SENSOR 
 int AnalogueValue[6] = {0,0,0,0,0,0};
 int AnaloguePin[6] = {5,4,6,7,15,17};
 
-//THRESHOLDS
+// THRESHOLDS
 int WhiteThreshold = 2000;
 
 //LEFT OR RIGHT
 int left_or_right = 0;
 
-//SPEED VARIABLES
+// SPEED VARIABLES
 int straight_l = 110;
 int straight_r = 105;
 int sharp_right_motor_r = 135;
@@ -32,28 +32,25 @@ int tank_turn = 135;
 //DISTANCE
 int dist = 0;
 
-//ROUTE
+// ROUTE CONTROL
 int route[] = {0,6,1,7,3,7,4,0,4,7,5};
 int previousPosition = 4;
 int currentPosition = 0;
 int nextPosition = 6;
 int action = 0;
 int a = 0;
-/*straight=0
-  left=1
-  right=2
-  180+straight=3*/
 
-//WIFI DETAILS
+// WIFI DETAILS
 char ssid[] = "iot";
-char password[] = "unmercenarily56aweto";
+char password[] = "kabikis75windfall";
 WiFiClient client;
 
-//SERVER DETAILS
+// SERVER DETAILS
 char server[] = "3.250.38.184";
 int port = 8000;
+const char teamID[] = "afty6723";
 
-//BUFFER SIZE FOR HTTPS RESPONSE
+// BUFFER SIZE FOR HTTPS RESPONSE
 #define BUFSIZE 512
 
 //POSITIONS
@@ -71,7 +68,198 @@ void TankRight(int turn_right, int turn_left);
 void GoBackwards();
 void Stop();
 
-//CASES
+void setup() {
+  Serial.begin(9600);
+
+  //MOTOR
+  pinMode(motor1PWM, OUTPUT);
+  pinMode(motor2PWM, OUTPUT);
+  pinMode(motor1Phase, OUTPUT);
+  pinMode(motor2Phase, OUTPUT);
+
+  //OPTICAL SENSOR
+  int i;
+  for(i=0; i<5; i++) {
+    pinMode(AnaloguePin[i], INPUT);
+  }
+
+  //WIFI
+  connectToWiFi();
+  connectToServer();
+}
+
+void loop() {
+  OpticalTest();
+  Distancetest();
+  delay(1);
+
+  currentPosition = route[a];
+  nextPosition = route[a+1];
+  
+  switchCase();
+  Moving();
+}
+
+///////////////////////////////  TESTS  ////////////////////////////////////////
+
+void Distancetest() {
+  AnalogueValue[5] = analogRead(AnaloguePin[5]);
+  dist = AnalogueValue[5];
+  Serial.print("Distance Sensor Value: ");
+  Serial.println(dist);
+  delay(1);
+}
+
+void OpticalTest() {
+  int i;
+  for (i=0;i<5;i++)
+  {
+  AnalogueValue[i]=analogRead(AnaloguePin[i]);
+  //Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
+  //Serial.print("\t"); //tab over on screen
+  if(i==4)
+      {
+        //Serial.println(""); //carriage return
+        delay(1); // display new set of readings every 600mS
+      }
+  }
+}
+
+void ServerTest() {
+  for (int i=0; i<5; i++) {
+    Serial.print("Sent Message: ");
+    Serial.println(i);
+    delay(1000);
+    String response = SendMessage(i);
+    Serial.print("Received Message: ");
+    Serial.println(response);
+    delay(1000);
+  }
+}
+
+/////////////////////////  MOBILITY FUNCTIONS  //////////////////////////////
+
+void GoForwards() {
+  digitalWrite(motor1Phase, HIGH); //forward
+  analogWrite(motor1PWM, straight_l); // set speed of motor
+  digitalWrite(motor2Phase, HIGH); //forward
+  analogWrite(motor2PWM, straight_r); // set speed of motor
+}
+
+void Left(int turn_right, int turn_left) {
+  digitalWrite(motor1Phase, HIGH);
+  analogWrite(motor1PWM, turn_right);
+  digitalWrite(motor2Phase, HIGH);
+  analogWrite(motor2PWM, turn_left);
+  left_or_right = 0;
+
+}
+
+void Right(int turn_right, int turn_left) {
+  digitalWrite(motor1Phase, HIGH);
+  analogWrite(motor1PWM, turn_right);
+  digitalWrite(motor2Phase, HIGH);
+  analogWrite(motor2PWM, turn_left);
+  left_or_right = 1;
+}
+
+void TankLeft(int turn_right, int turn_left) {
+  digitalWrite(motor1Phase, HIGH);
+  analogWrite(motor1PWM, turn_right);
+  digitalWrite(motor2Phase, LOW);
+  analogWrite(motor2PWM, turn_left);
+  left_or_right = 0;
+
+}
+
+void TankRight(int turn_right, int turn_left) {
+  digitalWrite(motor1Phase, LOW);
+  analogWrite(motor1PWM, turn_right);
+  digitalWrite(motor2Phase, HIGH);
+  analogWrite(motor2PWM, turn_left);
+  left_or_right = 1;
+
+}
+
+void GoBackwards() {
+  digitalWrite(motor1Phase, LOW);
+  analogWrite(motor1PWM, straight_l);
+  digitalWrite(motor2Phase, LOW);
+  analogWrite(motor2PWM, straight_r);
+}
+
+void Stop() {
+  analogWrite(motor1PWM, 0); 
+  analogWrite(motor2PWM, 0);
+}
+
+void Moving() {
+  if (BBWBB() || WBBBW() || BWWWB()) {
+    GoForwards();
+  }
+  else if (BWWBB() || BWBBB()) { 
+    Left(straighten_left_l, straighten_left_r);
+  }
+  else if (WWWBB()) {
+    Left(straighten_left_l, straighten_left_r);
+  }
+  else if (WBBBB() || WWBBB()) {
+    Left(sharp_left_motor_l, sharp_left_motor_r);
+  }
+  else if (BBBWW() || BBBBW()) {
+    Right(sharp_right_motor_l, sharp_right_motor_r);
+  }
+  else if (BBWWW()) {
+    Right(straighten_right_l, straighten_right_r);
+  }
+  else if (BBBWB() || BBWWB()) {
+    Right(straighten_right_l, straighten_right_r);
+  }
+  else if (WWWWWW() || BWWWW() || WWWWB()) {
+    Stop();
+    Serial.println("Sending Message...");
+    SendMessage(currentPosition);
+    //printResponses();
+    delay(2000);
+    if (action==3){
+      TankLeft(tank_turn, tank_turn);
+      left_or_right=0;
+      delay(1000);
+    }
+    else if (action==1){
+      TankLeft(tank_turn, tank_turn);
+      left_or_right=0;
+      delay(400);
+    }
+    else if (action==2){
+      TankRight(tank_turn, tank_turn);
+      left_or_right=1;
+      delay(400);
+    }
+    else {
+      GoForwards();
+    }
+    previousPosition = currentPosition;
+    a++;
+    if (a>=11){
+      Stop();
+    }
+  }
+  else if (BBBBB()) {
+    if (left_or_right == 0) {
+    Left(sharp_left_motor_l, sharp_left_motor_r);
+    }
+    else{
+    Right(sharp_right_motor_l, sharp_right_motor_r);
+    }
+  }
+  else {
+    Stop();
+  }  
+}
+
+////////////////////////////////  CASES  /////////////////////////////////////
+
 bool BBWBB() { //On white line
   return (AnalogueValue[2] <= WhiteThreshold &&
           AnalogueValue[0] >= WhiteThreshold &&
@@ -80,7 +268,7 @@ bool BBWBB() { //On white line
           AnalogueValue[4] >= WhiteThreshold);
 }
 
-bool WWWWW() { //all white
+bool WWWWWW() { //all white
   return (AnalogueValue[2] <= WhiteThreshold &&
           AnalogueValue[0] <= WhiteThreshold &&
           AnalogueValue[1] <= WhiteThreshold &&
@@ -209,36 +397,9 @@ bool BBWWW() { //white on fifth
           AnalogueValue[4] <= WhiteThreshold);
 }
 
-// the setup routine runs once when you press reset:
-void setup() {
-  Serial.begin(9600);
-  //MOTOR
-  pinMode(motor1PWM, OUTPUT);
-  pinMode(motor2PWM, OUTPUT);
-  pinMode(motor1Phase, OUTPUT);
-  pinMode(motor2Phase, OUTPUT);
+/////////////////////////////  SWITCH CASES  //////////////////////////////////////
 
-  //OPTICAL SENSOR
-  int i;
-  for(i=0; i<5; i++) {
-    pinMode(AnaloguePin[i], INPUT);
-  }
-
-  //WIFI
-  connectToWiFi();
-  connect();
-}
-
-// the loop routine runs over and over again continuously:
-void loop() {
-
-  OpticalTest();
-  Distancetest();
-  delay(1);
-
-  currentPosition = route[a];
-  nextPosition = route[a+1];
-  
+void switchCase() {
   // Determine the action based on current, next, and previous positions
   switch (currentPosition) {
     case 0:
@@ -623,242 +784,110 @@ void loop() {
       Serial.printf("%d Invalid current position\n", __LINE__);
       break;
   }
-
-  if (BBWBB() || WBBBW() || BWWWB()) {
-    GoForwards();
-  }
-  else if (BWWBB() || BWBBB()) { 
-    Left(straighten_left_l, straighten_left_r);
-  }
-  else if (WWWBB()) {
-    Left(straighten_left_l, straighten_left_r);
-  }
-  else if (WBBBB() || WWBBB()) {
-    Left(sharp_left_motor_l, sharp_left_motor_r);
-  }
-  else if (BBBWW() || BBBBW()) {
-    Right(sharp_right_motor_l, sharp_right_motor_r);
-  }
-  else if (BBWWW()) {
-    Right(straighten_right_l, straighten_right_r);
-  }
-  else if (BBBWB() || BBWWB()) {
-    Right(straighten_right_l, straighten_right_r);
-  }
-  else if (WWWWW() || BWWWW() || WWWWB()) {
-    Stop();
-    Serial.print("Sending Message...");
-    //SendMessage(currentPosition);
-    //printResponses();
-    delay(2000);
-    if (action==3){
-      TankLeft(tank_turn, tank_turn);
-      left_or_right=0;
-      delay(1000);
-    }
-    else if (action==1){
-      TankLeft(tank_turn, tank_turn);
-      left_or_right=0;
-      delay(400);
-    }
-    else if (action==2){
-      TankRight(tank_turn, tank_turn);
-      left_or_right=1;
-      delay(400);
-    }
-    else {
-      GoForwards();
-    }
-    previousPosition = currentPosition;
-    a++;
-    if (a>=11){
-      Stop();
-    }
-  }
-  else if (BBBBB()) {
-    if (left_or_right == 0) {
-    Left(sharp_left_motor_l, sharp_left_motor_r);
-    }
-    else{
-    Right(sharp_right_motor_l, sharp_right_motor_r);
-    }
-  }
-  else {
-    Stop();
-  }
 }
 
-void Distancetest() {
-  AnalogueValue[5] = analogRead(AnaloguePin[5]);
-  dist = AnalogueValue[5];
-  Serial.print("Distance Sensor Value: ");
-  Serial.println(dist);
-  delay(1);
-}
-
-void OpticalTest() {
-  int i;
-  for (i=0;i<5;i++)
-  {
-  AnalogueValue[i]=analogRead(AnaloguePin[i]);
-  //Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
-  //Serial.print("\t"); //tab over on screen
-  if(i==4)
-      {
-        //Serial.println(""); //carriage return
-        delay(1); // display new set of readings every 600mS
-      }
-  }
-}
-
-///////////MOBILITY FUNCTIONS
-
-void GoForwards() {
-  digitalWrite(motor1Phase, HIGH); //forward
-  analogWrite(motor1PWM, straight_l); // set speed of motor
-  digitalWrite(motor2Phase, HIGH); //forward
-  analogWrite(motor2PWM, straight_r); // set speed of motor
-}
-
-void Left(int turn_right, int turn_left) {
-  digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, turn_right);
-  digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, turn_left);
-  left_or_right = 0;
-
-}
-
-void Right(int turn_right, int turn_left) {
-  digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, turn_right);
-  digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, turn_left);
-  left_or_right = 1;
-}
-
-void TankLeft(int turn_right, int turn_left) {
-  digitalWrite(motor1Phase, HIGH);
-  analogWrite(motor1PWM, turn_right);
-  digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, turn_left);
-  left_or_right = 0;
-
-}
-
-void TankRight(int turn_right, int turn_left) {
-  digitalWrite(motor1Phase, LOW);
-  analogWrite(motor1PWM, turn_right);
-  digitalWrite(motor2Phase, HIGH);
-  analogWrite(motor2PWM, turn_left);
-  left_or_right = 1;
-
-}
-
-void GoBackwards() {
-  digitalWrite(motor1Phase, LOW);
-  analogWrite(motor1PWM, straight_l);
-  digitalWrite(motor2Phase, LOW);
-  analogWrite(motor2PWM, straight_r);
-}
-
-void Stop() {
-  analogWrite(motor1PWM, 0); 
-  analogWrite(motor2PWM, 0);
-}
-
-///////////WIFI FUNCTIONS
+////////////////////////////  WIFI FUNCTIONS  //////////////////////////////////////
 
 void connectToWiFi() {
-  Serial.print("Connecting to network: ");
-  Serial.print(ssid);
-  Serial.flush();
+  Serial.print("Connecting to WiFi: ");
+  Serial.println(ssid);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     Serial.print(".");
-    Serial.flush();
-    delay(300);
-  }
-  Serial.println("Connected");
-  Serial.print("Obtaining IP address");
-  Serial.flush();
-
-  while (WiFi.localIP() == INADDR_NONE) {
-    Serial.print(".");
-    Serial.flush();
-    delay(300);
+    delay(500);
+    attempts++;
   }
   
-  Serial.println();
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
-} //WORKS
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nConnected!");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("\nFailed to connect to WiFi.");
+  }
+}
 
-bool connect() {
+bool connectToServer() {
   if (!client.connect(server, port)) {
-    Serial.println(":(\nError connecting to server.");
+    Serial.println("Error connecting to server.");
     return false;
   }
-    Serial.println(":)\nConnected to server!");
-    return true;
-} //WORKS
+  Serial.println("Connected to server!");
+  return true;
+}
 
-String SendMessage(int current_position) {
+String SendMessage(int position) {
+  if (!client.connected()) {
+    Serial.println("Client not connected, reconnecting...");
+    if (!connectToServer()) {
+      return "";
+    }
+  }
 
-  // post body
-  int position = current_position;
-  String postBody("position=");
-  postBody += position;
+  String postBody = "position=" + String(position);
 
-  // send post request and headers
-  client.println("POST /api/arrived/afty6723 HTTP/1.1"); //forgot to add gap between url and protocol
+  client.println("POST /api/arrived/" + String(teamID) + " HTTP/1.1");
   client.println("Content-Type: application/x-www-form-urlencoded");
   client.print("Content-Length: ");
   client.println(postBody.length());
+  client.println("Connection: keep-alive");
   client.println();
-
-  // send post body
   client.println(postBody);
-  Serial.print("Sent Position: ");
-  Serial.println(position);
-} //WORKS
 
-String readResponse() {
-  char buffer[BUFSIZE];
-  memset(buffer, 0, BUFSIZE);
-  client.readBytes(buffer, BUFSIZE); //blocking call
-  String response(buffer);
-  return response;
+  delay(1000);
+
+  String response = readResponse();
+  int statusCode = getStatusCode(response);
+  if (statusCode == 200) {
+    return getResponseBody(response);
+  }
+  return "";
 }
 
-// get status code
+String readResponse() {
+  char buffer[BUFSIZE + 1];
+  memset(buffer, 0, BUFSIZE + 1);
+  int bytesRead = client.readBytes(buffer, BUFSIZE);
+  buffer[bytesRead] = '\0';
+  return String(buffer);
+}
+
 int getStatusCode(String& response) {
-  String code = response.substring(9, 12);
-  return code.toInt();
+  if (response.length() >= 12) {
+    return response.substring(9, 12).toInt();
+  }
+  return -1;
 }
 
 String getResponseBody(String& response) {
   int split = response.indexOf("\r\n\r\n");
-  String body = response.substring(split+4, response.length());
-  body.trim();
-  return body;
-}
-
-void printResponses() {
-  String response = readResponse(); // read response
-  int statusCode = getStatusCode(response); // get status code
-    if (statusCode == 200) {
-    // success, read body
-    String body = getResponseBody(response);
-    // check if at final destination
-    if (!body.equals("Finished")) {
-      destination = body.toInt(); 
-    }
-
-    Serial.println("STATUS CODE: ");
-    Serial.print(statusCode);
-    Serial.println("RESPONSE: ");
-    Serial.print(response);
+  if (split != -1) {
+    return response.substring(split + 4);
   }
+  return "";
 }
 
+String getRoute(int position) {
+  if (!client.connected()) {
+    Serial.println("Client not connected, reconnecting...");
+    if (!connectToServer()) {
+      return "";
+    }
+  }
+
+  String getRequest = "GET /api/getRoute/" + String(teamID) + "?position=" + String(position) + " HTTP/1.1";
+  client.println(getRequest);
+  client.println("Host: " + String(server));
+  client.println("Connection: close");
+  client.println();
+
+  String response = readResponse();
+  int statusCode = getStatusCode(response);
+  if (statusCode == 200) {
+    return getResponseBody(response);
+  }
+  Serial.println("Error: " + response);
+  return "";
+}
