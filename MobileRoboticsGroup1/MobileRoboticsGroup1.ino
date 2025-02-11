@@ -694,22 +694,21 @@ void loop() {
       Parking();
     }
     else if (action==7){
-        slow_forward = 50;
+        slow_forward = 80;
         GoForwardsSlow();
-        delay(500);
-        if (AnalogueValue[0] <= WhiteThreshold || AnalogueValue[1] <= WhiteThreshold) { 
-          while(AnalogueValue[2] >= WhiteThreshold){
-            OpticalTest();
-            tank_turn = 80;
-            TankLeft(tank_turn, tank_turn);
-          }
+        delay(250);
+        OpticalTest();
+        if (AnalogueValue[0] <= WhiteThreshold) {
+            straighten_left_l=80;
+            straighten_left_r=60;
+            Left(straighten_left_l, straighten_left_r);
+            delay(500);
         }
-        if (AnalogueValue[4] <= WhiteThreshold || AnalogueValue[3] <= WhiteThreshold) { 
-          while(AnalogueValue[2] >= WhiteThreshold){
-            OpticalTest();
-            tank_turn = 80;
-            TankRight(tank_turn, tank_turn);
-          }
+        if (AnalogueValue[4] <= WhiteThreshold) {
+            straighten_right_l=60;
+            straighten_right_r=80;
+            Right(straighten_right_l, straighten_right_r);
+            delay(500);
         }
         Parking();
     }
