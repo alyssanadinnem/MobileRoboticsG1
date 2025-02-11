@@ -38,11 +38,13 @@ int slow_forward = 80*multiplier;
 
 //DISTANCE
 int dist = 0;
+int end = 0;
+int error = 0;
 
 //ROUTE
-int route[] = {0, 6, 1, 7, 5};
+int route[] = {7, 5};
 int routeCount = sizeof(route)/sizeof(route[0]);
-int previousPosition = 4;
+int previousPosition = 1;
 int currentPosition = 0;
 int nextPosition = 6;
 int action = 0;
@@ -645,30 +647,44 @@ void loop() {
     }
     else if (action==1){
       GoForwardsSlow();
-      delay(800);
+      delay(700);
       TankLeft(tank_turn, tank_turn);
       left_or_right=0;
       delay(600);
     }
     else if (action==2){
       GoForwardsSlow();
-      delay(800);
+      delay(700);
       TankRight(tank_turn, tank_turn);
       left_or_right=1;
       delay(600);
     }
     else if (action==4){
       GoForwardsSlow();
-      delay(800);
+      delay(700);
+      tank_turn=80;
       TankRight(tank_turn, tank_turn);
-      delay(80);
+      left_or_right=1;
+      delay(1000);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankRight(tank_turn, tank_turn);
+      }
       Parking();
     }
     else if (action==5){
       GoForwardsSlow();
-      delay(800);
+      delay(700);
+      tank_turn=80;
       TankLeft(tank_turn, tank_turn);
-      delay(800);
+      left_or_right=0;
+      delay(1000);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankLeft(tank_turn, tank_turn);
+      }
       Parking();
     }
     else if (action==6){
@@ -678,7 +694,24 @@ void loop() {
       Parking();
     }
     else if (action==7){
-      Parking();
+        slow_forward = 50;
+        GoForwardsSlow();
+        delay(500);
+        if (AnalogueValue[0] <= WhiteThreshold || AnalogueValue[1] <= WhiteThreshold) { 
+          while(AnalogueValue[2] >= WhiteThreshold){
+            OpticalTest();
+            tank_turn = 80;
+            TankLeft(tank_turn, tank_turn);
+          }
+        }
+        if (AnalogueValue[4] <= WhiteThreshold || AnalogueValue[3] <= WhiteThreshold) { 
+          while(AnalogueValue[2] >= WhiteThreshold){
+            OpticalTest();
+            tank_turn = 80;
+            TankRight(tank_turn, tank_turn);
+          }
+        }
+        Parking();
     }
     else if(action==0){
       GoForwards();
@@ -789,12 +822,24 @@ void Stop() {
   analogWrite(motor2PWM, 0);
 }
 
-void Parking(){
-  GoForwards();
-  delay(6500);
-  GoForwardsSlow();
-  delay(1500);
-  Stop();
-  delay(999999);
-
+void Parking() {
+  while(end==0){
+    Distancetest();
+    if(error<10){
+      //Serial.println("Entering IF: Moving Forward");
+      straight_l = 115;
+      straight_r = 105;
+      GoForwards();
+      if(dist > 500) {
+      error++;
+      }
+    }
+    else {
+      Serial.println("Entering ELSE: Moving Slowly");
+      GoForwardsSlow();
+      delay(970);
+      Stop();
+      delay(9999999999999);
+    }
+  }
 }
