@@ -17,7 +17,7 @@ int left_or_right = 0;
 int multiplier = 1;
 
 //SPEED VARIABLES
-int straight_l = 110*multiplier;
+int straight_l = 115*multiplier;
 int straight_r = 105*multiplier;
 
 int sharp_right_motor_r = 155*multiplier;
@@ -645,17 +645,17 @@ void loop() {
     }
     else if (action==1){
       GoForwardsSlow();
-      delay(1000);
+      delay(800);
       TankLeft(tank_turn, tank_turn);
       left_or_right=0;
-      delay(400);
+      delay(600);
     }
     else if (action==2){
       GoForwardsSlow();
-      delay(1000);
+      delay(800);
       TankRight(tank_turn, tank_turn);
       left_or_right=1;
-      delay(400);
+      delay(600);
     }
     else if (action==4){
       GoForwardsSlow();
@@ -793,7 +793,7 @@ void Parking(){
   GoForwards();
   delay(6500);
   GoForwardsSlow();
-  delay(1300);
+  delay(1500);
   Stop();
   delay(999999);
 
