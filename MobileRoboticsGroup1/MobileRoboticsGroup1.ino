@@ -254,7 +254,7 @@ void Moving() {
   else if (WWWWW() || BWWWW() || WWWWB()) {
     
     Serial.printf("%d", __LINE__);
-    delay(50);
+    delay(100);
     Stop();
     Serial.println("Sending Message...");
 
@@ -267,6 +267,7 @@ void Moving() {
       Serial.print("NEXT POINT: ");
       Serial.println(nextPosition);
     }
+  
     switchCase();
     delay(50);
 
@@ -482,7 +483,7 @@ void switchCase() {
     nextPosition = nextPoint.toInt(); //convert response to an integer
     Serial.print("NEXT POINT: ");
     Serial.println(nextPosition);
-    }
+  }
 
   //Determine the action based on current, next, and previous positions
   switch (currentPosition) {
@@ -1028,14 +1029,19 @@ String UpdateNext(int position) { //previously SendMessage()
 
   Serial.print("Status Code: ");
   Serial.println(statusCode);
+  Serial.print("Response: ");
+  Serial.println(response);
 
   if (statusCode == 200 || statusCode == 400) { //changed for some reason
     String responseBody = getResponseBody(response);
+    Serial.print("Response Body: ");
+    Serial.println(responseBody);
 
     //Check if the response ends with "finished"
-    if (responseBody.endsWith("finished")) {
-      Serial.println("Received 'finished' from server. Stopping robot.");
+    if (responseBody == "Finished") {
+      Serial.println("Received 'Finished' from server. Stopping Moby.");
       Stop(); //Stop the robot
+      delay(9999999);
     }
 
   Serial.print("Received Next Node: ");
