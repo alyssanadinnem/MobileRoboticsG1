@@ -17,16 +17,16 @@ int WhiteThreshold = 2000;
 int left_or_right = 0;
 
 //SPEED VARIABLES
-int multiplier = 1;
+int multiplier = 1.2;
 int straight_l = 115*multiplier;
-int straight_r = 105*multiplier;
-int sharp_right_motor_r = 155*multiplier;
+int straight_r = 105;
+int sharp_right_motor_r = 155;
 int sharp_right_motor_l = 0*multiplier;
-int sharp_left_motor_r = 0*multiplier;
+int sharp_left_motor_r = 0;
 int sharp_left_motor_l = 155*multiplier;
-int straighten_left_r = 115*multiplier;
+int straighten_left_r = 115;
 int straighten_left_l = 135*multiplier;
-int straighten_right_r = 135*multiplier;
+int straighten_right_r = 135;
 int straighten_right_l = 115*multiplier;
 int tank_turn = 135*multiplier;
 int slow_forward = 80*multiplier;
@@ -248,7 +248,7 @@ void Parking() {
     Distancetest();
     if(error<10){
       //Serial.println("Entering IF: Moving Forward");
-      straight_l = 115;
+      straight_l = 138;
       straight_r = 105;
       GoForwards();
       if(dist > 500) {
@@ -616,8 +616,8 @@ void switchCase() {
             Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
             action = 0;
           } 
-          //if nextPosition is 3 or 4, default to going to node 7
-          else if (nextPosition == 3 || nextPosition == 4) {
+          //if nextPosition is 3 or 4 OR 5, default to going to node 7
+          else if (nextPosition == 3 || nextPosition == 4 || nextPosition == 5) {
             Serial.printf("%d Next Position is 3 or 4. Defaulting to node 7.\n", __LINE__);
       
             afterSeven = nextPosition;
@@ -744,7 +744,7 @@ void switchCase() {
           }
           break;
         default:
-          if (nextPosition == 1 || nextPosition == 4) {
+          if (nextPosition == 1 || nextPosition == 4 || nextPosition == 5) {
             Serial.printf("%d Next Position is 1 or 4. Defaulting to node 7.\n", __LINE__);
       
             afterSeven = nextPosition;
@@ -779,10 +779,6 @@ void switchCase() {
     case 4: //DONE: Next Position = 0,1,3 (7); 2 (0,6)
       Serial.printf("%d Current Position: 4\n", __LINE__);
       switch (nextPosition) {
-        case 5:
-          afterSeven = nextPosition;
-          nextPosition = 7;
-          break;
         case 0:
           Serial.printf("%d Next Position: 0\n", __LINE__);
           switch (previousPosition) {
@@ -812,7 +808,7 @@ void switchCase() {
           }
           break;
         default:
-          if (nextPosition == 1 || nextPosition == 3) {
+          if (nextPosition == 1 || nextPosition == 3 || nextPosition == 5) {
             Serial.printf("%d Next Position is 1 or 3. Defaulting to node 7.\n", __LINE__);
       
             afterSeven = nextPosition;
