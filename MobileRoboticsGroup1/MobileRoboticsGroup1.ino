@@ -17,24 +17,29 @@ int WhiteThreshold = 2000;
 int left_or_right = 0;
 
 //SPEED VARIABLES
-int straight_l = 110;
-int straight_r = 105;
-int sharp_right_motor_r = 135;
-int sharp_right_motor_l = 0;
-int sharp_left_motor_r = 0;
-int sharp_left_motor_l = 135;
-int straighten_left_r = 115;
-int straighten_left_l = 135;
-int straighten_right_r = 135;
-int straighten_right_l = 115;
-int tank_turn = 135;
+int multiplier = 1;
+int straight_l = 115*multiplier;
+int straight_r = 105*multiplier;
+int sharp_right_motor_r = 155*multiplier;
+int sharp_right_motor_l = 0*multiplier;
+int sharp_left_motor_r = 0*multiplier;
+int sharp_left_motor_l = 155*multiplier;
+int straighten_left_r = 115*multiplier;
+int straighten_left_l = 135*multiplier;
+int straighten_right_r = 135*multiplier;
+int straighten_right_l = 115*multiplier;
+int tank_turn = 135*multiplier;
+int slow_forward = 80*multiplier;
 
 //DISTANCE
 int dist = 0;
+int end = 0;
+int error = 0;
 
 //HARDCODED ROUTE CONTROL
 /*
 int route[] = {0,6,1,7,3};
+int routeCount = sizeof(route)/sizeof(route[0]);
 int previousPosition = 4;
 int currentPosition = 0;
 int nextPosition = 6;
@@ -47,8 +52,12 @@ int previousPosition = 4;
 int currentPosition = 100; //any number so it indicates no next point yet
 int nextPosition = -1; //any number so it indicates no next point yet
 int action = 0;
-int beforeSix = 666; //any number
-int beforeSeven = 777;
+int afterSix = 666; //any number
+int afterSeven = 777;
+int zeroToThree = 333;
+int threeToZero = 320;
+int twoToFour = 224;
+int fourToTwo = 422;
 
 //WIFI DETAILS
 char ssid[] = "iot";
@@ -76,6 +85,7 @@ void TankLeft(int turn_right, int turn_left);
 void TankRight(int turn_right, int turn_left);
 void GoBackwards();
 void Stop();
+void Parking();
 
 ///////////////////////////////  SETUP()  ////////////////////////////////////
 
@@ -182,13 +192,19 @@ void GoForwards() {
   analogWrite(motor2PWM, straight_r); //set speed of motor
 }
 
+void GoForwardsSlow() {
+  digitalWrite(motor1Phase, HIGH); //forward
+  analogWrite(motor1PWM, slow_forward); // set speed of motor
+  digitalWrite(motor2Phase, HIGH); //forward
+  analogWrite(motor2PWM, slow_forward); // set speed of motor
+}
+
 void Left(int turn_right, int turn_left) {
   digitalWrite(motor1Phase, HIGH);
   analogWrite(motor1PWM, turn_right);
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 0;
-
 }
 
 void Right(int turn_right, int turn_left) {
@@ -205,7 +221,6 @@ void TankLeft(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 0;
-
 }
 
 void TankRight(int turn_right, int turn_left) {
@@ -214,7 +229,6 @@ void TankRight(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 1;
-
 }
 
 void GoBackwards() {
@@ -229,31 +243,47 @@ void Stop() {
   analogWrite(motor2PWM, 0);
 }
 
+void Parking() {
+  while(end==0){
+    Distancetest();
+    if(error<10){
+      //Serial.println("Entering IF: Moving Forward");
+      straight_l = 115;
+      straight_r = 105;
+      GoForwards();
+      if(dist > 500) {
+      error++;
+      }
+    }
+    else {
+      Serial.println("Entering ELSE: Moving Slowly");
+      GoForwardsSlow();
+      delay(970);
+      Stop();
+      delay(9999999999999);
+    }
+  }
+}
+
 void Moving() {
   
   if (BBWBB() || WBBBW() || BWWWB()) {
-    Serial.printf("%d ", __LINE__);
     GoForwards();
   }
   else if (BWWBB() || BWBBB() || BWBBW() || WWWBB()) {
-    Serial.printf("%d", __LINE__);
     Left(straighten_left_l, straighten_left_r);
   }
   else if (WBBBB() || WWBBB()) {
-    Serial.printf("%d", __LINE__);
     Left(sharp_left_motor_l, sharp_left_motor_r);
   }
   else if (BBBWW() || BBBBW()) {
-    Serial.printf("%d", __LINE__);
     Right(sharp_right_motor_l, sharp_right_motor_r);
   }
   else if (BBWWW() || BBBWB() || BBWWB() || WBBWB() || WBWBB()) {
-    Serial.printf("%d", __LINE__);
     Right(straighten_right_l, straighten_right_r);
   }
   else if (WWWWW() || BWWWW() || WWWWB()) {
-    
-    Serial.printf("%d", __LINE__);
+
     delay(100);
     Stop();
     Serial.println("Sending Message...");
@@ -270,30 +300,10 @@ void Moving() {
   
     switchCase();
     delay(50);
-
-    if (action==3){
-      TankLeft(tank_turn, tank_turn);
-      left_or_right=0;
-      delay(1000);
-    }
-    else if (action==1){
-      TankLeft(tank_turn, tank_turn);
-      left_or_right=0;
-      delay(400);
-    }
-    else if (action==2){
-      TankRight(tank_turn, tank_turn);
-      left_or_right=1;
-      delay(400);
-    }
-    else {
-      GoForwards();
-    }
+    actions();
     
   }
   else if (BBBBB()) {
-
-    Serial.printf("%d", __LINE__);
 
     if (left_or_right == 0) {
     Left(sharp_left_motor_l, sharp_left_motor_r);
@@ -304,7 +314,6 @@ void Moving() {
   }
   else {
 
-    Serial.printf("%d", __LINE__);
     Stop();
   }  
 }
@@ -481,6 +490,8 @@ void switchCase() {
   if (nextPosition == -1 || nextPosition == currentPosition) {
     String nextPoint = UpdateNext(currentPosition); //get response from the server
     nextPosition = nextPoint.toInt(); //convert response to an integer
+    Serial.print("PREVIOUS POINT: ");
+    Serial.println(previousPosition);
     Serial.print("NEXT POINT: ");
     Serial.println(nextPosition);
   }
@@ -488,8 +499,17 @@ void switchCase() {
   //Determine the action based on current, next, and previous positions
   switch (currentPosition) {
 
-  case 0: //DONE: Next Positions = 4, 1, 2 (6)
+  case 0: //DONE: Next Positions = 4, 1, 2, 3 (6)
     Serial.printf("%d Current Position: 0\n", __LINE__);
+
+    if (twoToFour != 224) {
+      nextPosition = 4;
+      }
+
+    if (fourToTwo != 422) {
+      nextPosition = 6;
+    }
+
     switch (nextPosition) {
       case 4:
         Serial.printf("%d Next Position: 4\n", __LINE__);
@@ -524,9 +544,21 @@ void switchCase() {
         if (nextPosition == 1 || nextPosition == 2) {
           Serial.printf("%d Next Position is 1 or 2. Defaulting to node 6.\n", __LINE__);
     
-          beforeSix = nextPosition;
+          afterSix = nextPosition;
           Serial.print("ORIGINAL Next Point: ");
-          Serial.println(beforeSix);
+          Serial.println(afterSix);
+
+          nextPosition = 6; //set nextPosition to 6
+          Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
+          action = 0;
+        } 
+        else if (nextPosition == 3) { //if nextPosition is 3, default to node 6, then 2
+          Serial.printf("%d Next Position is 3. Defaulting to node 6.\n", __LINE__);
+
+          afterSix = 2;
+          zeroToThree = nextPosition;
+          Serial.print("ORIGINAL Next Point: ");
+          Serial.println(zeroToThree);
 
           nextPosition = 6; //set nextPosition to 6
           Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
@@ -576,9 +608,9 @@ void switchCase() {
           if (nextPosition == 0 || nextPosition == 2) {
             Serial.printf("%d Next Position is 0 or 2. Defaulting to node 6.\n", __LINE__);
       
-            beforeSix = nextPosition;
+            afterSix = nextPosition;
             Serial.print("ORIGINAL Next Point: ");
-            Serial.println(beforeSix);
+            Serial.println(afterSix);
 
             nextPosition = 6; //set nextPosition to 6
             Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
@@ -588,9 +620,9 @@ void switchCase() {
           else if (nextPosition == 3 || nextPosition == 4) {
             Serial.printf("%d Next Position is 3 or 4. Defaulting to node 7.\n", __LINE__);
       
-            beforeSeven = nextPosition;
+            afterSeven = nextPosition;
             Serial.print("ORIGINAL Next Point: ");
-            Serial.println(beforeSeven);
+            Serial.println(afterSeven);
 
             nextPosition = 7; //set nextPosition to 7
             Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
@@ -604,12 +636,24 @@ void switchCase() {
       break;
       //Current = 1, DONE
       
-    case 2:
+    case 2: //DONE: Next Position = 0,1,3 (6); 4 (0,6)
       Serial.printf("%d Current Position: 2\n", __LINE__);
+
+      if (zeroToThree != 333) {
+        nextPosition = 3;
+      }
+
+      if (threeToZero != 320) {
+        nextPosition = 6;
+      }
+
       switch (nextPosition) {
         case 3:
           Serial.printf("%d Next Position: 3\n", __LINE__);
           switch (previousPosition) {
+
+            zeroToThree = 333; //reset
+
             case 3:
               Serial.printf("%d Previous Position: 3\n", __LINE__);
               Serial.printf("%d Action: Do a 180 and go straight to node 3\n", __LINE__);
@@ -640,9 +684,22 @@ void switchCase() {
           if (nextPosition == 0 || nextPosition == 1) {
             Serial.printf("%d Next Position is 0 or 1. Defaulting to node 6.\n", __LINE__);
       
-            beforeSix = nextPosition;
+            afterSix = nextPosition;
             Serial.print("ORIGINAL Next Point: ");
-            Serial.println(beforeSix);
+            Serial.println(afterSix);
+
+            nextPosition = 6; //set nextPosition to 6
+            Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
+            action = 0;
+          } 
+          else if (nextPosition == 4) { //if nextPosition is 4, default to node 6, then 0
+            Serial.printf("%d Next Position is 4. Defaulting to node 6.\n", __LINE__);
+
+            // {2,6,0,4}
+            afterSix = 0;
+            twoToFour = nextPosition;
+            Serial.print("ORIGINAL Next Point: ");
+            Serial.println(twoToFour);
 
             nextPosition = 6; //set nextPosition to 6
             Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
@@ -655,7 +712,7 @@ void switchCase() {
       }
       break;
 
-    case 3:
+    case 3: //DONE: Next Position = 1,2,4 (7); 0 (2,6)
       Serial.printf("%d Current Position: 3\n", __LINE__);
       switch (nextPosition) {
         case 2:
@@ -690,14 +747,28 @@ void switchCase() {
           if (nextPosition == 1 || nextPosition == 4) {
             Serial.printf("%d Next Position is 1 or 4. Defaulting to node 7.\n", __LINE__);
       
-            beforeSeven = nextPosition;
+            afterSeven = nextPosition;
             Serial.print("ORIGINAL Next Point: ");
-            Serial.println(beforeSeven);
+            Serial.println(afterSeven);
 
             nextPosition = 7; //set nextPosition to 7
             Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
             action = 0;
-          } 
+          }
+          else if (nextPosition == 0) { //if nextPosition is 0, default to node 2, then 6
+            Serial.printf("%d Next Position is 3. Defaulting to node 6.\n", __LINE__);
+
+            //{3,2,6,0}
+
+            afterSix = 0;
+            threeToZero = 2;
+            Serial.print("ORIGINAL Next Point: 0");
+            Serial.println(0);
+
+            nextPosition = 2; //set nextPosition to 2
+            Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
+            action = 0;
+          }
           else {
             Serial.printf("%d Invalid next position for current node 0\n", __LINE__);
           }
@@ -705,9 +776,13 @@ void switchCase() {
       }
       break;
 
-    case 4:
+    case 4: //DONE: Next Position = 0,1,3 (7); 2 (0,6)
       Serial.printf("%d Current Position: 4\n", __LINE__);
       switch (nextPosition) {
+        case 5:
+          afterSeven = nextPosition;
+          nextPosition = 7;
+          break;
         case 0:
           Serial.printf("%d Next Position: 0\n", __LINE__);
           switch (previousPosition) {
@@ -740,14 +815,28 @@ void switchCase() {
           if (nextPosition == 1 || nextPosition == 3) {
             Serial.printf("%d Next Position is 1 or 3. Defaulting to node 7.\n", __LINE__);
       
-            beforeSeven = nextPosition;
+            afterSeven = nextPosition;
             Serial.print("ORIGINAL Next Point: ");
-            Serial.println(beforeSeven);
+            Serial.println(afterSeven);
 
             nextPosition = 7; //set nextPosition to 7
             Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
             action = 0;
           } 
+          else if (nextPosition == 2) { //if nextPosition is 2, default to node 0, then 6
+            Serial.printf("%d Next Position is 2. Defaulting to node 0.\n", __LINE__);
+
+            //{4,0,6,2}
+
+            afterSix = 2;
+            fourToTwo = 0;
+            Serial.print("ORIGINAL Next Point:");
+            Serial.println(afterSix);
+
+            nextPosition = 0; //set nextPosition to 0
+            Serial.printf("%d Action: Go straight to node 0\n", __LINE__);
+            action = 0;
+          }
           else {
             Serial.printf("%d Invalid next position for current node 0\n", __LINE__);
           }
@@ -780,9 +869,9 @@ void switchCase() {
       Serial.printf("%d Current Position: 6\n", __LINE__);
 
       Serial.print("ORIGINAL Next Position: ");
-      Serial.println(beforeSix);
+      Serial.println(afterSix);
 
-      nextPosition = beforeSix;
+      nextPosition = afterSix;
 
       switch (nextPosition) {
         case 0:
@@ -851,9 +940,9 @@ void switchCase() {
     case 7:
 
       Serial.print("ORIGINAL Next Position: ");
-      Serial.println(beforeSeven);
+      Serial.println(afterSeven);
 
-      nextPosition = beforeSeven; 
+      nextPosition = afterSeven; 
 
       Serial.printf("%d Current Position: 7\n", __LINE__);
       switch (nextPosition) {
@@ -935,21 +1024,21 @@ void switchCase() {
             case 5:
               Serial.printf("%d Previous Position: 5\n", __LINE__);
               Serial.printf("%d Action: Do a 180 and go straight to node 5\n", __LINE__);
-              action = 3;
+              action = 6;
               break;
             case 3:
               Serial.printf("%d Previous Position: 3\n", __LINE__);
               Serial.printf("%d Action: Turn right\n", __LINE__);
-              action = 2;
+              action = 4;
               break;
             case 4:
               Serial.printf("%d Previous Position: 4\n", __LINE__);
               Serial.printf("%d Action: Turn left\n", __LINE__);
-              action = 1;
+              action = 5;
               break;
             default:
               Serial.printf("%d Action: Go straight\n", __LINE__);
-              action = 0;
+              action = 7;
               break;
           }
           break;
@@ -963,6 +1052,93 @@ void switchCase() {
       Serial.printf("%d Invalid current position\n", __LINE__);
       break;
   }
+
+  if (previousPosition == nextPosition || previousPosition == 100 && nextPosition == 4) {
+      action = 3;
+  }
+
+}
+
+////////////////////////////  ACTIONS  ///////////////////////////////////////
+
+void actions() {
+
+  if (action==3){ //180
+      TankLeft(tank_turn, tank_turn);
+      left_or_right=0;
+      delay(1200);
+    }
+    else if (action==1){ //left
+      GoForwardsSlow();
+      delay(700);
+      TankLeft(tank_turn, tank_turn);
+      left_or_right=0;
+      delay(600);
+    }
+    else if (action==2){ //right
+      GoForwardsSlow();
+      delay(700);
+      TankRight(tank_turn, tank_turn);
+      left_or_right=1;
+      delay(600);
+    }
+    else if (action==4){ //parking from 3
+      GoForwardsSlow();
+      delay(700);
+      tank_turn=80;
+      TankRight(tank_turn, tank_turn);
+      left_or_right=1;
+      delay(1000);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankRight(tank_turn, tank_turn);
+      }
+      Parking();
+    }
+    else if (action==5){ //parking from 4
+      GoForwardsSlow();
+      delay(700);
+      tank_turn=80;
+      TankLeft(tank_turn, tank_turn);
+      left_or_right=0;
+      delay(1000);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankLeft(tank_turn, tank_turn);
+      }
+      Parking();
+    }
+    else if (action==6){ //parking from 7, prev 5
+      TankLeft(tank_turn, tank_turn);
+      left_or_right=0;
+      delay(1200);
+      Parking();
+    }
+    else if (action==7){ //parking from 6, 1, or 7
+        slow_forward = 80;
+        GoForwardsSlow();
+        delay(250);
+        OpticalTest();
+        if (AnalogueValue[0] <= WhiteThreshold) {
+            straighten_left_l=80;
+            straighten_left_r=60;
+            Left(straighten_left_l, straighten_left_r);
+            delay(500);
+        }
+        if (AnalogueValue[4] <= WhiteThreshold) {
+            straighten_right_l=60;
+            straighten_right_r=80;
+            Right(straighten_right_l, straighten_right_r);
+            delay(500);
+        }
+        Parking();
+    }
+    else if(action==0){
+      GoForwards();
+      delay(1000);
+    }
 }
 
 ////////////////////////////  WIFI FUNCTIONS  //////////////////////////////////////
@@ -1027,10 +1203,12 @@ String UpdateNext(int position) { //previously SendMessage()
   String response = readResponse();
   int statusCode = getStatusCode(response);
 
+  /*
   Serial.print("Status Code: ");
   Serial.println(statusCode);
   Serial.print("Response: ");
   Serial.println(response);
+  */
 
   if (statusCode == 200 || statusCode == 400) { //changed for some reason
     String responseBody = getResponseBody(response);
