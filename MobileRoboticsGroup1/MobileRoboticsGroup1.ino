@@ -5,6 +5,7 @@ int motor1PWM = 37; //LEFT WHEEL: "1"
 int motor1Phase = 38;
 int motor2PWM = 39; //RIGHT WHEEL: "2"
 int motor2Phase = 20;
+int BUZZER_PIN = 18; //Buzzer
 
 //OPTICAL SENSOR 
 int AnalogueValue[6] = {0,0,0,0,0,0};
@@ -103,6 +104,8 @@ void setup() {
   for(i=0; i<5; i++) {
     pinMode(AnaloguePin[i], INPUT);
   }
+
+  pinMode(BUZZER_PIN, OUTPUT);
 
   //WIFI
   connectToWiFi();
@@ -265,6 +268,23 @@ void Parking() {
   }
 }
 
+void Buzzer(){
+  tone(BUZZER_PIN, 500);
+  delay(100);
+  tone(BUZZER_PIN, 500);
+  delay(100);
+  tone(BUZZER_PIN, 800);
+  delay(50);
+  tone(BUZZER_PIN, 800);
+  delay(50);
+  tone(BUZZER_PIN, 800);
+  delay(50);
+  tone(BUZZER_PIN, 1500);
+  delay(150);
+  
+  noTone(BUZZER_PIN);
+}
+
 void Moving() {
   
   if (BBWBB() || WBBBW() || BWWWB()) {
@@ -286,6 +306,7 @@ void Moving() {
 
     delay(100);
     Stop();
+    Buzzer();
     Serial.println("Sending Message...");
 
     Serial.print("CURRENT POINT: ");
