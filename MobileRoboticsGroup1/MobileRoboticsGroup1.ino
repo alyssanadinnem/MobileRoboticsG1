@@ -280,20 +280,21 @@ void Obstacle(){
       TankLeft(tank_turn, tank_turn);
     }
     error2 = 0;
-    Serial.print("Obstacle detected");
-    Serial.println();
+    //Serial.print("Obstacle detected");
+    //Serial.println();
+    nextPosition = previousPosition;
   }
-  else if(dist > 2000 && dist < 3000) {
+  else if(dist > 1000 && dist < 3000) {
     error2++;
-    Serial.print("Error increased");
-    Serial.println();
+    //Serial.print("Error increased");
+    //Serial.println();
   }
   
 }
 
 void Moving() {
   
-  //Obstacle();
+  Obstacle();
 
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
