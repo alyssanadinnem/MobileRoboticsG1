@@ -1,10 +1,35 @@
+#include <ESP32Servo.h>
+#include <esp_now.h>
 #include <WiFi.h> 
+
+// Define constants for Ultrasonic Sensor pins and motor control
+#define ULTRASONIC_TRIG_PIN 10  // Pin for triggering the ultrasonic pulse
+#define ULTRASONIC_ECHO_PIN 11  // Pin for receiving the ultrasonic echo
+#define SERVO_PIN 12            // Pin to which the servo motor is attached
+#define SOUND_SPEED 0.034       // Speed of sound in cm per microsecond (340 m/s)
+
+#define BUFSIZE 512             //BUFFER SIZE FOR HTTPS RESPONSE
 
 //MOTOR PINS
 int motor1PWM = 37; //LEFT WHEEL: "1"
 int motor1Phase = 38;
 int motor2PWM = 39; //RIGHT WHEEL: "2"
 int motor2Phase = 20;
+
+//SERVO VARIABLES
+long timeInterval;
+int distance;
+//int angle;
+Servo motorControl;
+
+// Structure for ESP-NOW
+typedef struct struct_message {
+  int angle;
+  int distance;
+} struct_message;
+
+// Create an instance
+struct_message distanceAngle;
 
 //OPTICAL SENSOR 
 int AnalogueValue[6] = {0,0,0,0,0,0};
@@ -36,17 +61,6 @@ int dist = 0;
 int end = 0;
 int error = 0;
 
-//HARDCODED ROUTE CONTROL
-/*
-int route[] = {0,6,1,7,3};
-int routeCount = sizeof(route)/sizeof(route[0]);
-int previousPosition = 4;
-int currentPosition = 0;
-int nextPosition = 6;
-int action = 0;
-int a = 0;
-*/
-
 //ROUTE CONTROLs 
 int previousPosition = 4;
 int currentPosition = 100; //any number so it indicates no next point yet
@@ -69,11 +83,19 @@ char server[] = "3.250.38.184";
 int port = 8000;
 const char teamID[] = "afty6723";
 
-//BUFFER SIZE FOR HTTPS RESPONSE
-#define BUFSIZE 512
-
 //POSITIONS
 int destination;
+
+// MAC address = 48:27:e2:15:50:14
+uint8_t broadcastAddress[] = {0x48, 0x27, 0xE2, 0x15, 0x50, 0x14}; 
+
+esp_now_peer_info_t peerInfo;
+
+// Callback for ESP-NOW
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
 
 //FUNCTION DECLARATIONS
 void OpticalTest();
@@ -86,6 +108,7 @@ void TankRight(int turn_right, int turn_left);
 void GoBackwards();
 void Stop();
 void Parking();
+int getDistance();
 
 ///////////////////////////////  SETUP()  ////////////////////////////////////
 
@@ -98,6 +121,11 @@ void setup() {
   pinMode(motor1Phase, OUTPUT);
   pinMode(motor2Phase, OUTPUT);
 
+  //SERVO
+  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
+  pinMode(ULTRASONIC_ECHO_PIN, INPUT);
+  motorControl.attach(SERVO_PIN);
+
   //OPTICAL SENSOR
   int i;
   for(i=0; i<5; i++) {
@@ -107,6 +135,34 @@ void setup() {
   //WIFI
   connectToWiFi();
   connectToServer();
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect(); // Ensure ESP32 is in standalone mode
+
+    // Initialize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Initialize peer info
+  memset(&peerInfo, 0, sizeof(peerInfo));
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+
+  /*// Delete peer if it exists
+  esp_now_del_peer(broadcastAddress);*/
+
+  // Add peer
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  } else {
+    Serial.println("Peer added successfully");
+  }
+
+  // Register callback
+  esp_now_register_send_cb(OnDataSent);
 }
 
 ////////////////////////////////  LOOP()  ////////////////////////////////////
@@ -118,12 +174,8 @@ void loop() {
   Distancetest();
   delay(1);
 
-  /*//print current, next and prev positions
-  OpticalPrint();
-  DistancePrint();
-  */
-  
   Moving();
+  ServoMovement();
   delay(50);
 }
 
@@ -316,6 +368,57 @@ void Moving() {
 
     Stop();
   }  
+}
+
+void ServoMovement(){
+  // Sweep servo from 15 to 165 degrees and measure distance
+  for (int angle = 15; angle <= 165; angle++) {
+    motorControl.write(angle);  // Rotate servo to current angle
+    delay(20);                  // Wait for servo to reach position
+    distance = getDistance(); // Get distance from ultrasonic sensor
+    
+    // Set values to send
+    distanceAngle.angle = angle; 
+    distanceAngle.distance = distance;
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+    esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+
+    Serial.print(distanceAngle.angle);
+    Serial.print(",");
+    Serial.print(distanceAngle.distance);
+    Serial.println(".");
+  }
+
+  // Sweep servo back from 165 to 15 degrees
+  for (int angle = 165; angle > 15; angle--) {
+    motorControl.write(angle);
+    delay(20);
+    distance = getDistance();
+    
+    // Set values to send
+    distanceAngle.angle = angle; 
+    distanceAngle.distance = distance;
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+    esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+
+    Serial.print(distanceAngle.angle);
+    Serial.print(",");
+    Serial.print(distanceAngle.distance);
+    Serial.println(".");
+  }
+}
+
+// Get distance function
+int getDistance() {
+  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ULTRASONIC_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
+  
+  timeInterval = pulseIn(ULTRASONIC_ECHO_PIN, HIGH);
+  distance = timeInterval * SOUND_SPEED / 2;
+  return distance;
 }
 
 ////////////////////////////////  CASES  /////////////////////////////////////
