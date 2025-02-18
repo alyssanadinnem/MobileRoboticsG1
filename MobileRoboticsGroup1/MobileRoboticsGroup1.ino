@@ -12,7 +12,7 @@ int AnalogueValue[6] = {0,0,0,0,0,0};
 int AnaloguePin[6] = {5,4,6,7,15,17};
 
 //THRESHOLDS
-int WhiteThreshold = 2000;
+int WhiteThreshold = 1000;
 
 //LEFT OR RIGHT
 int left_or_right = 0;
@@ -35,7 +35,8 @@ int slow_forward = 80*multiplier;
 //DISTANCE
 int dist = 0;
 int end = 0;
-int error = 0;
+int error1 = 0;
+int error2 = 0;
 
 //HARDCODED ROUTE CONTROL
 /*
@@ -62,7 +63,7 @@ int fourToTwo = 422;
 
 //WIFI DETAILS
 char ssid[] = "iot";
-char password[] = "unmercenarily56aweto"; // "kabikis75windfall"; 
+char password[] = "kabikis75windfall"; // "needlings84wheezily";
 WiFiClient client;
 
 //SERVER DETAILS
@@ -87,11 +88,12 @@ void TankRight(int turn_right, int turn_left);
 void GoBackwards();
 void Stop();
 void Parking();
+void Obstacle();
 
 ///////////////////////////////  SETUP()  ////////////////////////////////////
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   //MOTOR
   pinMode(motor1PWM, OUTPUT);
@@ -135,14 +137,9 @@ void loop() {
 void Distancetest() {
   AnalogueValue[5] = analogRead(AnaloguePin[5]);
   dist = AnalogueValue[5];
-  Serial.print("Distance Sensor Value: ");
-  Serial.println(dist);
+  //Serial.print("Distance Sensor Value: ");
+  //Serial.println(dist);
   delay(1);
-}
-
-void DistancePrint() {
-  Serial.print("Distance Sensor Value: ");
-  Serial.println(dist);
 }
 
 void OpticalTest() {
@@ -150,21 +147,7 @@ void OpticalTest() {
   for (i=0;i<5;i++)
   {
   AnalogueValue[i]=analogRead(AnaloguePin[i]);
-  //Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
-  //Serial.print("\t"); //tab over on screen
-  if(i==4)
-      {
-        //Serial.println(""); //carriage return
-        delay(1); //display new set of readings every 600mS
-      }
-  }
-}
-
-void OpticalPrint() {
-  int i;
-  for (i=0;i<5;i++)
-  {
-  Serial.print(AnalogueValue[i]); //This prints the actual analog reading from the sensors
+  Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
   Serial.print("\t"); //tab over on screen
   if(i==4)
       {
@@ -249,13 +232,13 @@ void Stop() {
 void Parking() {
   while(end==0){
     Distancetest();
-    if(error<10){
+    if(error1<10){
       //Serial.println("Entering IF: Moving Forward");
       straight_l = 120;
       straight_r = 105;
       GoForwards();
-      if(dist > 500) {
-      error++;
+      if(dist > 500 && dist <2000) {
+      error1++;
       }
     }
     else {
@@ -285,8 +268,33 @@ void Buzzer(){
   noTone(BUZZER_PIN);
 }
 
+void Obstacle(){
+  Distancetest();
+  if(error2 > 10){
+    TankLeft(tank_turn, tank_turn);
+    left_or_right=0;
+    delay(1000);
+    OpticalTest();
+    while(AnalogueValue[2] >= WhiteThreshold){
+      OpticalTest();
+      TankLeft(tank_turn, tank_turn);
+    }
+    error2 = 0;
+    Serial.print("Obstacle detected");
+    Serial.println();
+  }
+  else if(dist > 2000 && dist < 3000) {
+    error2++;
+    Serial.print("Error increased");
+    Serial.println();
+  }
+  
+}
+
 void Moving() {
   
+  //Obstacle();
+
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
   }
