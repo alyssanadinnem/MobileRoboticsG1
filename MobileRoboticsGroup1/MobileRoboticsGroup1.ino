@@ -10,6 +10,9 @@
 
 #define BUFSIZE 512             //BUFFER SIZE FOR HTTPS RESPONSE
 
+// MAC address = 48:ca:43:06:13:fc
+uint8_t broadcastAddress[] = {0x48, 0xCA, 0x43, 0x06, 0x13, 0xFC}; 
+
 //MOTOR PINS
 int motor1PWM = 37; //LEFT WHEEL: "1"
 int motor1Phase = 38;
@@ -19,7 +22,7 @@ int motor2Phase = 20;
 //SERVO VARIABLES
 long timeInterval;
 int distance;
-//int angle;
+int angle;
 Servo motorControl;
 
 // Structure for ESP-NOW
@@ -30,6 +33,8 @@ typedef struct struct_message {
 
 // Create an instance
 struct_message distanceAngle;
+
+esp_now_peer_info_t peerInfo;
 
 //OPTICAL SENSOR 
 int AnalogueValue[6] = {0,0,0,0,0,0};
@@ -75,7 +80,7 @@ int fourToTwo = 422;
 
 //WIFI DETAILS
 char ssid[] = "iot";
-char password[] = "unmercenarily56aweto"; // "kabikis75windfall"; 
+char password[] = "needlings84wheezily"; 
 WiFiClient client;
 
 //SERVER DETAILS
@@ -85,11 +90,6 @@ const char teamID[] = "afty6723";
 
 //POSITIONS
 int destination;
-
-// MAC address = 48:27:e2:15:50:14
-uint8_t broadcastAddress[] = {0x48, 0x27, 0xE2, 0x15, 0x50, 0x14}; 
-
-esp_now_peer_info_t peerInfo;
 
 // Callback for ESP-NOW
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -110,10 +110,53 @@ void Stop();
 void Parking();
 int getDistance();
 
+
+
+
+
+// Function to print ESP-NOW error codes
+void printEspNowError(esp_err_t error) {
+    Serial.print("ESP-NOW Send Error: ");
+    switch (error) {
+        case ESP_ERR_ESPNOW_NOT_INIT:
+            Serial.println("ESP_ERR_ESPNOW_NOT_INIT - ESPNOW is not initialized");
+            break;
+        case ESP_ERR_ESPNOW_ARG:
+            Serial.println("ESP_ERR_ESPNOW_ARG - Invalid argument");
+            break;
+        case ESP_ERR_ESPNOW_INTERNAL:
+            Serial.println("ESP_ERR_ESPNOW_INTERNAL - Internal error");
+            break;
+        case ESP_ERR_ESPNOW_NO_MEM:
+            Serial.println("ESP_ERR_ESPNOW_NO_MEM - Out of memory");
+            break;
+        case ESP_ERR_ESPNOW_NOT_FOUND:
+            Serial.println("ESP_ERR_ESPNOW_NOT_FOUND - Peer not found");
+            break;
+        case ESP_ERR_ESPNOW_IF:
+            Serial.println("ESP_ERR_ESPNOW_IF - Wi-Fi interface mismatch");
+            break;
+        case ESP_ERR_ESPNOW_CHAN:
+            Serial.println("ESP_ERR_ESPNOW_CHAN - Wi-Fi channel mismatch");
+            break;
+        case ESP_OK:
+            Serial.println("ESP_OK - Message sent successfully");
+            break;
+        default:
+            Serial.print("Unknown Error Code: ");
+            Serial.println(error);
+            break;
+    }
+}
+
+
+
+
+
 ///////////////////////////////  SETUP()  ////////////////////////////////////
 
 void setup() {
-  Serial.begin(9600);
+  /*Serial.begin(115200);
 
   //MOTOR
   pinMode(motor1PWM, OUTPUT);
@@ -138,45 +181,78 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(); // Ensure ESP32 is in standalone mode
 
-    // Initialize ESP-NOW
+  // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
 
-  // Initialize peer info
-  memset(&peerInfo, 0, sizeof(peerInfo));
+  // Once ESPNow is successfully Init, we will register for Send CB to
+  // get the status of Trasnmitted packet
+  esp_now_register_send_cb(OnDataSent);
+
+  // Register peer info
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
   peerInfo.channel = 0;
   peerInfo.encrypt = false;
-
-  /*// Delete peer if it exists
-  esp_now_del_peer(broadcastAddress);*/
 
   // Add peer
   if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
-  } else {
-    Serial.println("Peer added successfully");
+  } */
+
+
+  Serial.begin(115200);
+
+  WiFi.mode(WIFI_STA);  // Set to station mode
+  WiFi.disconnect();     // Disconnect from any WiFi network
+
+  // Initialize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
   }
 
-  // Register callback
+  // Set callback function
   esp_now_register_send_cb(OnDataSent);
+
+  // Register peer
+  memcpy(peerInfo.peer_addr, slaveAddress, 6);
+  peerInfo.channel = 0;  // Set to 0 to auto-match slave's channel
+  peerInfo.encrypt = false;
+
+  // Add peer
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  }
 }
+
 
 ////////////////////////////////  LOOP()  ////////////////////////////////////
 
 void loop() {
   
-  //get the values for Moving()
+  /*//get the values for Moving()
   OpticalTest();
   Distancetest();
   delay(1);
 
   Moving();
   ServoMovement();
-  delay(50);
+  delay(50);*/
+
+  distanceAngle.angle = 45;  // Example data
+  distanceAngle.distance = 100;
+
+  // Send message
+  esp_err_t result = esp_now_send(slaveAddress, (uint8_t *) &distanceAngle, sizeof(distanceAngle));
+
+  // Debugging output
+  printEspNowError(result);
+
+  delay(1000);
 }
 
 ///////////////////////////////  TESTS  ////////////////////////////////////////
@@ -360,12 +436,11 @@ void Moving() {
     if (left_or_right == 0) {
     Left(sharp_left_motor_l, sharp_left_motor_r);
     }
-    else{
+    else {
     Right(sharp_right_motor_l, sharp_right_motor_r);
     }
   }
   else {
-
     Stop();
   }  
 }
@@ -380,8 +455,11 @@ void ServoMovement(){
     // Set values to send
     distanceAngle.angle = angle; 
     distanceAngle.distance = distance;
+
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
-    esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+    
+    if (result == ESP_OK) {Serial.println("Sent with success");}
+    else { Serial.println("Error sending the data");}
 
     Serial.print(distanceAngle.angle);
     Serial.print(",");
@@ -391,15 +469,18 @@ void ServoMovement(){
 
   // Sweep servo back from 165 to 15 degrees
   for (int angle = 165; angle > 15; angle--) {
-    motorControl.write(angle);
-    delay(20);
-    distance = getDistance();
+    motorControl.write(angle);  // Rotate servo to current angle
+    delay(20);                  // Wait for servo to reach position
+    distance = getDistance(); // Get distance from ultrasonic sensor
     
     // Set values to send
     distanceAngle.angle = angle; 
     distanceAngle.distance = distance;
+
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
-    esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+    
+    if (result == ESP_OK) {Serial.println("Sent with success");}
+    else { Serial.println("Error sending the data");}
 
     Serial.print(distanceAngle.angle);
     Serial.print(",");
