@@ -1083,7 +1083,12 @@ void actions() {
   if (action==3){ //180
       TankLeft(tank_turn, tank_turn);
       left_or_right=0;
-      delay(1200);
+      delay(1000);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankLeft(tank_turn, tank_turn);
+      }
     }
     else if (action==1){ //left
       GoForwardsSlow();
@@ -1091,6 +1096,11 @@ void actions() {
       TankLeft(tank_turn, tank_turn);
       left_or_right=0;
       delay(600);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankLeft(tank_turn, tank_turn);
+      }
     }
     else if (action==2){ //right
       GoForwardsSlow();
@@ -1098,6 +1108,11 @@ void actions() {
       TankRight(tank_turn, tank_turn);
       left_or_right=1;
       delay(600);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankRight(tank_turn, tank_turn);
+      }
     }
     else if (action==4){ //parking from 3
       GoForwardsSlow();
