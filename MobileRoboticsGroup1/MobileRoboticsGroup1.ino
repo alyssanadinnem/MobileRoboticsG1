@@ -5,7 +5,6 @@
 //"needlings84wheezily" - MAC: 48:ca:43:06:13:fc new esp wifi - Channel: 11
 
 // Structure example to receive data
-// Must match the sender structure
 typedef struct struct_message {
     int angle;
     int distance;
@@ -17,11 +16,6 @@ struct_message distanceAngle;
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&distanceAngle, incomingData, sizeof(distanceAngle));
-
-  Serial.print(distanceAngle.angle);
-  Serial.print(",");
-  Serial.print(distanceAngle.distance);
-  Serial.println(".");
 }
  
 void setup() {
@@ -41,5 +35,8 @@ void setup() {
 }
  
 void loop() {
-
+  Serial.print(distanceAngle.angle);
+  Serial.print(",");
+  Serial.print(distanceAngle.distance);
+  Serial.println(".");
   }
