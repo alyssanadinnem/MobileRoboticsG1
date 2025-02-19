@@ -1,12 +1,14 @@
 #include <WiFi.h> 
 #include <Arduino.h>
 #include <climits>
+#include "pitches.h"
 
 //MOTOR PINS
 int motor1PWM = 37; //LEFT WHEEL: "1"
 int motor1Phase = 38;
 int motor2PWM = 39; //RIGHT WHEEL: "2"
 int motor2Phase = 20;
+int BUZZER_PIN = 18; //Buzzer
 
 //OPTICAL SENSOR 
 int AnalogueValue[6] = {0,0,0,0,0,0};
@@ -19,16 +21,16 @@ int WhiteThreshold = 2000;
 int left_or_right = 0;
 
 //SPEED VARIABLES
-int multiplier = 1.2;
-int straight_l = 115*multiplier;
-int straight_r = 105;
-int sharp_right_motor_r = 155;
+int multiplier = 1.5;
+int straight_l = 120*multiplier;
+int straight_r = 105*multiplier;
+int sharp_right_motor_r = 155*multiplier;
 int sharp_right_motor_l = 0*multiplier;
-int sharp_left_motor_r = 0;
+int sharp_left_motor_r = 0*multiplier;
 int sharp_left_motor_l = 155*multiplier;
-int straighten_left_r = 115;
+int straighten_left_r = 115*multiplier;
 int straighten_left_l = 135*multiplier;
-int straighten_right_r = 135;
+int straighten_right_r = 135*multiplier;
 int straighten_right_l = 115*multiplier;
 int tank_turn = 135*multiplier;
 int slow_forward = 80*multiplier;
@@ -36,7 +38,15 @@ int slow_forward = 80*multiplier;
 //DISTANCE
 int dist = 0;
 int end = 0;
-int error = 0;
+int error1 = 0;
+int error2 = 0;
+
+//BUZZER
+int buzzer_count = 0;
+
+//LED
+const int GreenLEDPin = 1;
+const int RedLEDPin = 2;
 
 //HARDCODED ROUTE CONTROL
 /*
@@ -98,6 +108,10 @@ void TankRight(int turn_right, int turn_left);
 void GoBackwards();
 void Stop();
 void Parking();
+void Buzzer();
+void Obstacle();
+void FlashRedLED();
+void FlashGreenLED();
 
 ///////////////////////////////  SETUP()  ////////////////////////////////////
 
@@ -116,6 +130,10 @@ void setup() {
     pinMode(AnaloguePin[i], INPUT);
   }
 
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(GreenLEDPin, OUTPUT); 
+  pinMode(RedLEDPin, OUTPUT);
+
   //WIFI
   connectToWiFi();
   connectToServer();
@@ -128,15 +146,13 @@ void loop() {
   //get the values for Moving()
   OpticalTest();
   Distancetest();
-  delay(1);
 
-  /* UNDO COMMENT FOR DEBUGGING
-  OpticalPrint();
-  DistancePrint();
-  */
+  // UNDO COMMENT FOR DEBUGGING
+  //OpticalPrint();
+  //DistancePrint();
   
   Moving();
-  delay(50);
+  delay(1);
 }
 
 ///////////////////////////////  TESTS  ////////////////////////////////////////
@@ -205,6 +221,8 @@ void GoForwards() {
   analogWrite(motor1PWM, straight_l); //set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
   analogWrite(motor2PWM, straight_r); //set speed of motor
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void GoForwardsSlow() {
@@ -212,6 +230,8 @@ void GoForwardsSlow() {
   analogWrite(motor1PWM, slow_forward); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
   analogWrite(motor2PWM, slow_forward); // set speed of motor
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void Left(int turn_right, int turn_left) {
@@ -220,6 +240,8 @@ void Left(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 0;
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void Right(int turn_right, int turn_left) {
@@ -228,6 +250,8 @@ void Right(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 1;
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void TankLeft(int turn_right, int turn_left) {
@@ -236,6 +260,8 @@ void TankLeft(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 0;
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void TankRight(int turn_right, int turn_left) {
@@ -244,6 +270,8 @@ void TankRight(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 1;
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void GoBackwards() {
@@ -251,6 +279,8 @@ void GoBackwards() {
   analogWrite(motor1PWM, straight_l);
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, straight_r);
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void Stop() {
@@ -261,27 +291,118 @@ void Stop() {
 void Parking() {
   while(end==0){
     Distancetest();
-    if(error<10){
+    if(error1<10){
       //Serial.println("Entering IF: Moving Forward");
-      straight_l = 138;
+      straight_l = 123;
       straight_r = 105;
       GoForwards();
-      if(dist > 500) {
-      error++;
+      if(dist > 1000 && dist < 1500) {
+      error1++;
       }
     }
     else {
-      Serial.println("Entering ELSE: Moving Slowly");
+      //Serial.println("Entering ELSE: Moving Slowly");
       GoForwardsSlow();
-      delay(970);
+      delay(500);
       Stop();
       delay(9999999999999);
     }
   }
 }
 
+void Buzzer(){
+  //Serial.print("Buzzer function entered");
+  if(buzzer_count > 0 && buzzer_count <= 100){
+    tone(BUZZER_PIN, NOTE_C4);
+  }
+  else if(buzzer_count > 100 && buzzer_count <= 200){
+    tone(BUZZER_PIN, NOTE_D4);
+  }
+  else if(buzzer_count > 200 && buzzer_count <= 300){
+    tone(BUZZER_PIN, NOTE_E4);
+  }
+  else if(buzzer_count > 300 && buzzer_count <= 2000){
+    noTone(BUZZER_PIN);
+  }
+  else{
+    buzzer_count = 0;
+  }
+  delay(1);
+  buzzer_count++;
+}
+
+//go back to previous node
+void Obstacle(){
+  Distancetest();
+  if(error2 > 10){
+    TankLeft(tank_turn, tank_turn);
+    left_or_right=0;
+    delay(1000);
+    OpticalTest();
+    while(AnalogueValue[2] >= WhiteThreshold){
+      OpticalTest();
+      TankLeft(tank_turn, tank_turn);
+    }
+    error2 = 0;
+    //Serial.print("Obstacle detected");
+    //Serial.println();
+    nextPosition = previousPosition;
+  }
+  else if(dist > 1500 && dist < 2000) {
+    error2++;
+    //Serial.print("Error increased");
+    //Serial.println();
+  }
+  
+}
+
+void FlashGreenLED(int onTime, int offTime) {
+  static unsigned long previousMillis = 0;
+  static bool GreenLEDState = LOW;
+  static int currentInterval = onTime; // Start with the ON duration
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= currentInterval) {
+    previousMillis = currentMillis;  // Update the timer
+    GreenLEDState = !GreenLEDState;            // Toggle LED state
+    digitalWrite(GreenLEDPin, GreenLEDState);  // Update LED state
+
+    // Set next interval based on LED state
+    if (GreenLEDState) {
+      currentInterval = onTime;  // LED is ON, wait for ON time
+    } else {
+      currentInterval = offTime; // LED is OFF, wait for OFF time
+    }
+  }
+}
+
+void FlashRedLED(int onTime, int offTime) {
+  static unsigned long previousMillis = 0;
+  static bool RedLEDState = LOW;
+  static int currentInterval = onTime; // Start with the ON duration
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= currentInterval) {
+    previousMillis = currentMillis;  // Update the timer
+    RedLEDState = !RedLEDState;            // Toggle LED state
+    digitalWrite(RedLEDPin, RedLEDState);  // Update LED state
+
+    // Set next interval based on LED state
+    if (RedLEDState) {
+      currentInterval = onTime;  // LED is ON, wait for ON time
+    } else {
+      currentInterval = offTime; // LED is OFF, wait for OFF time
+    }
+  }
+}
+
 void Moving() {
   
+  Obstacle();
+  Buzzer();
+
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
   }
@@ -532,7 +653,7 @@ void switchCase() {
     currentPosition = path[pathNum];
     nextPosition = path[pathNum+1];
 
-    /* UNDO COMMENT FOR DEBUGGING
+     //UNDO COMMENT FOR DEBUGGING
     Serial.println(" ");
     Serial.println("AFTER UPDATING...");
     Serial.print("PREVIOUS POINT: ");
@@ -542,7 +663,7 @@ void switchCase() {
     Serial.print("NEXT POINT: ");
     Serial.println(nextPosition);
     Serial.println(" ");
-    */
+    
   }
 
   //determine the action based on current, next, and previous positions
@@ -900,21 +1021,21 @@ void switchCase() {
             case 5:
               Serial.printf("%d Previous Position: 5\n", __LINE__);
               Serial.printf("%d Action: Do a 180 and go straight to node 5\n", __LINE__);
-              action = 3;
+              action = 6;
               break;
             case 3:
               Serial.printf("%d Previous Position: 3\n", __LINE__);
               Serial.printf("%d Action: Turn right\n", __LINE__);
-              action = 2;
+              action = 4;
               break;
             case 4:
               Serial.printf("%d Previous Position: 4\n", __LINE__);
               Serial.printf("%d Action: Turn left\n", __LINE__);
-              action = 1;
+              action = 5;
               break;
             default:
               Serial.printf("%d Action: Go straight\n", __LINE__);
-              action = 0;
+              action = 7;
               break;
           }
           break;
@@ -943,28 +1064,43 @@ void switchCase() {
 
 void actions() {
 
-  if (action==3){ //180
+    if (action==3){ //180
       TankLeft(tank_turn, tank_turn);
       left_or_right=0;
-      delay(1200);
+      delay(1000);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankLeft(tank_turn, tank_turn);
+      }
     }
     else if (action==1){ //left
       GoForwardsSlow();
-      delay(700);
+      delay(600);
       TankLeft(tank_turn, tank_turn);
       left_or_right=0;
       delay(600);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankLeft(tank_turn, tank_turn);
+      }
     }
     else if (action==2){ //right
       GoForwardsSlow();
-      delay(700);
+      delay(600);
       TankRight(tank_turn, tank_turn);
       left_or_right=1;
       delay(600);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankRight(tank_turn, tank_turn);
+      }
     }
     else if (action==4){ //parking from 3
       GoForwardsSlow();
-      delay(700);
+      delay(600);
       tank_turn=80;
       TankRight(tank_turn, tank_turn);
       left_or_right=1;
@@ -978,7 +1114,7 @@ void actions() {
     }
     else if (action==5){ //parking from 4
       GoForwardsSlow();
-      delay(700);
+      delay(600);
       tank_turn=80;
       TankLeft(tank_turn, tank_turn);
       left_or_right=0;
@@ -993,8 +1129,12 @@ void actions() {
     else if (action==6){ //parking from 7, prev 5
       TankLeft(tank_turn, tank_turn);
       left_or_right=0;
-      delay(1200);
-      Parking();
+      delay(1000);
+      OpticalTest();
+      while(AnalogueValue[2] >= WhiteThreshold){
+        OpticalTest();
+        TankLeft(tank_turn, tank_turn);
+      }
     }
     else if (action==7){ //parking from 6, 1, or 7
         slow_forward = 80;
@@ -1017,7 +1157,6 @@ void actions() {
     }
     else if(action==0){
       GoForwards();
-      delay(1000);
     }
 }
 
