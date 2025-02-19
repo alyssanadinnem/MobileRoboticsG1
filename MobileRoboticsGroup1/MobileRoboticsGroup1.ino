@@ -1,6 +1,8 @@
+#include <WiFi.h> 
+#include <Arduino.h>
+#include <climits>
 #include <ESP32Servo.h>
 #include <esp_now.h>
-#include <WiFi.h> 
 
 // Define constants for Ultrasonic Sensor pins and motor control
 #define ULTRASONIC_TRIG_PIN 10  // Pin for triggering the ultrasonic pulse
@@ -16,11 +18,16 @@ int motor1Phase = 38;
 int motor2PWM = 39; //RIGHT WHEEL: "2"
 int motor2Phase = 20;
 
+//ANGLES
+int previous_angle = 14;
+int current_angle = 15;
+bool increasing = true;  // Flag to track direction
+
 //SERVO VARIABLES
 long timeInterval;
 int distance;
-//int angle;
 Servo motorControl;
+bool LoopOnce = 0;
 
 // Structure for ESP-NOW
 typedef struct struct_message {
@@ -63,19 +70,23 @@ int error = 0;
 
 //ROUTE CONTROLs 
 int previousPosition = 4;
-int currentPosition = 100; //any number so it indicates no next point yet
+int currentPosition = 0; //any number so it indicates no next point yet
 int nextPosition = -1; //any number so it indicates no next point yet
+int realNext;
 int action = 0;
 int afterSix = 666; //any number
 int afterSeven = 777;
-int zeroToThree = 333;
-int threeToZero = 320;
-int twoToFour = 224;
-int fourToTwo = 422;
+
+//DIJKSTRA ALGORITHM
+#define INF 99999 //unreachable nodes
+#define NODES 8
+int path[NODES]; // Array to store the path
+int pathIndex = 0; // Index to track the current position in the path
+int pathNum = 0;
 
 //WIFI DETAILS
 char ssid[] = "iot";
-char password[] = "needlings84wheezily"; // NEW esp wifi 
+char password[] = "kabikis75windfall"; //"needlings84wheezily"; 
 WiFiClient client;
 
 //SERVER DETAILS
@@ -138,7 +149,7 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect(); // Ensure ESP32 is in standalone mode
 
-    // Initialize ESP-NOW
+  //ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
@@ -147,16 +158,13 @@ void setup() {
     Serial.println("esp INITIALIZED");
   }
 
-  // Initialize peer info
+  //PEER INITIALISE
   memset(&peerInfo, 0, sizeof(peerInfo));
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
   peerInfo.channel = 0;
   peerInfo.encrypt = false;
 
-  /*// Delete peer if it exists
-  esp_now_del_peer(broadcastAddress);*/
-
-  // Add peer
+  //ADD PEER
   if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
@@ -165,7 +173,7 @@ void setup() {
     Serial.println("PEER added");
   }
 
-  // Register callback
+  //CALLBACK
   esp_now_register_send_cb(OnDataSent);
 }
 
@@ -175,12 +183,13 @@ void loop() {
   
   //get the values for Moving()
   OpticalTest();
+  OpticalPrint();
   Distancetest();
-  delay(1);
-
+  DistancePrint();
   Moving();
   ServoMovement();
-  delay(50);
+  delay(1);
+  LoopOnce = 0;
 }
 
 ///////////////////////////////  TESTS  ////////////////////////////////////////
@@ -188,7 +197,8 @@ void loop() {
 void Distancetest() {
   AnalogueValue[5] = analogRead(AnaloguePin[5]);
   dist = AnalogueValue[5];
-  /*Serial.print("Distance Sensor Value: ");
+  /* UNDO COMMENT FOR DEBUGGING
+  Serial.print("Distance Sensor Value: ");
   Serial.println(dist);*/
   delay(1);
 }
@@ -203,11 +213,13 @@ void OpticalTest() {
   for (i=0;i<5;i++)
   {
   AnalogueValue[i]=analogRead(AnaloguePin[i]);
-  //Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
-  //Serial.print("\t"); //tab over on screen
+  /* UNDO COMMENT FOR DEBUGGING
+  Serial.print(AnalogueValue[i]); // This prints the actual analog reading from the sensors
+  Serial.print("\t"); //tab over on screen
+  */
   if(i==4)
       {
-        //Serial.println(""); //carriage return
+        //Serial.println(""); //carriage return (UNDO COMMENT FOR DEBUGGING)
         delay(1); //display new set of readings every 600mS
       }
   }
@@ -342,22 +354,26 @@ void Moving() {
 
     delay(100);
     Stop();
-    Serial.println("Sending Message...");
 
-    Serial.print("CURRENT POINT: ");
+    Serial.print(" ");
+    Serial.print("CHECK CURRENT POINT: ");
     Serial.println(currentPosition);
 
-    if (nextPosition == -1 || nextPosition == currentPosition) {
+    //retrieve initial next position
+    if (nextPosition == -1) {
+      pathIndex = 0; //reset the path array
+      Serial.println("Sending Message...");
       String nextPoint = UpdateNext(currentPosition); //get response from the server
-      nextPosition = nextPoint.toInt(); //convert response to an integer
-      Serial.print("NEXT POINT: ");
-      Serial.println(nextPosition);
+      realNext = nextPoint.toInt(); //convert response to an integer
+      Serial.print("TARGET POINT: ");
+      Serial.println(realNext);
+      dijkstraAlgorithm(currentPosition, realNext);  //find shortest path using Dijkstra's
     }
-  
-    switchCase();
-    delay(50);
-    actions();
-    
+
+    switchCase(); //determine the action based on the next node
+    actions(); //do the action
+    pathNum++;
+
   }
   else if (BBBBB()) {
 
@@ -374,54 +390,132 @@ void Moving() {
   }  
 }
 
-void ServoMovement(){
-  // Sweep servo from 15 to 165 degrees and measure distance
-  for (int angle = 15; angle <= 165; angle++) {
-    motorControl.write(angle);  // Rotate servo to current angle
-    delay(20);                  // Wait for servo to reach position
-    distance = getDistance(); // Get distance from ultrasonic sensor
-    
-    // Set values to send
-    distanceAngle.angle = angle; 
-    distanceAngle.distance = distance;
-    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
-    esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+/////////////////////////  SERVO AND ESP NOW  //////////////////////////////
 
-    Serial.print(distanceAngle.angle);
-    Serial.print(",");
-    Serial.print(distanceAngle.distance);
-    Serial.println(".");
+/*void ServoMovement(){
+  if(previous_angle < current_angle){
+    go to current_angle
+    current_angle++;
+    previous_angle++;
   }
+  else{
+    go to current_angle
+    current_angle--;
+  previous_angle--;
+  }
+  delay(1);
+}*/
 
-  // Sweep servo back from 165 to 15 degrees
-  for (int angle = 165; angle > 15; angle--) {
-    motorControl.write(angle);
-    delay(20);
-    distance = getDistance();
-    
-    // Set values to send
-    distanceAngle.angle = angle; 
-    distanceAngle.distance = distance;
-    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
-    esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+void ServoMovement() {
+  // Move servo to the current angle
+  motorControl.write(current_angle);
+  distance = getDistance();  // Measure distance
 
-    Serial.print(distanceAngle.angle);
-    Serial.print(",");
-    Serial.print(distanceAngle.distance);
-    Serial.println(".");
+  // Set values to send
+  distanceAngle.angle = current_angle;
+  distanceAngle.distance = distance;
+  esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+
+  // Print for debugging
+  Serial.print("Angle, Distance ");
+  Serial.print(distanceAngle.angle);
+  Serial.print(",");
+  Serial.print(distanceAngle.distance);
+  Serial.print(".");
+
+  // Update previous angle
+  previous_angle = current_angle;
+
+  // Change the angle by 1 degree
+  if (increasing) {
+    current_angle++;
+    if (current_angle >= 165) {
+      increasing = false;  // Change direction at max
+    }
+  } else {
+    current_angle--;
+    if (current_angle <= 15) {
+      increasing = true;  // Change direction at min
+    }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+void ServoMovement(){
+  // Sweep servo from 15 to 165 degrees and measure distance
+  while (LoopOnce == 0) {
+    for (int angle = 15; angle <= 165; angle++) {
+      motorControl.write(angle);  // Rotate servo to current angle
+      delay(1);                  // Wait for servo to reach position
+      distance = getDistance(); // Get distance from ultrasonic sensor
+    
+      // Set values to send
+      distanceAngle.angle = angle; 
+      distanceAngle.distance = distance;
+      esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+      esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+
+      Serial.print(distanceAngle.angle);
+      Serial.print(",");
+      Serial.print(distanceAngle.distance);
+      Serial.println(".");
+    }
+
+    // Sweep servo back from 165 to 15 degrees
+    for (int angle = 165; angle >= 15; angle--) {
+      motorControl.write(angle);
+      delay(1);
+      distance = getDistance();
+    
+      // Set values to send
+      distanceAngle.angle = angle; 
+      distanceAngle.distance = distance;
+      esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+      esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+
+      Serial.print(distanceAngle.angle);
+      Serial.print(",");
+      Serial.print(distanceAngle.distance);
+      Serial.println(".");
+
+      if (angle == 15){
+        LoopOnce = 1;
+      }
+    }
+  }
+  delay(1);
+}
+
+*/
+
+
+
+
+
 
 // Get distance function
 int getDistance() {
   digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
-  delayMicroseconds(2);
+  delay(1);
   digitalWrite(ULTRASONIC_TRIG_PIN, HIGH);
-  delayMicroseconds(10);
+  delay(1);
   digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
   
   timeInterval = pulseIn(ULTRASONIC_ECHO_PIN, HIGH);
   distance = timeInterval * SOUND_SPEED / 2;
+  delay(1);
+
   return distance;
 }
 
@@ -591,95 +685,88 @@ bool WBWBB() { //white on fifth
 
 void switchCase() {
 
-  previousPosition = currentPosition;
-  currentPosition = nextPosition;
+  Serial.println(" ");
+  Serial.print("Path Num: ");
+  Serial.println(pathNum);
+  Serial.print("Path Index: ");
+  Serial.print(pathIndex);
+  Serial.println(" ");
+  
+  currentPosition = path[pathNum];
+  nextPosition = path[pathNum+1];
 
-  if (nextPosition == -1 || nextPosition == currentPosition) {
+  Serial.println(" ");
+  Serial.print("PREVIOUS POINT: ");
+  Serial.println(previousPosition);
+  Serial.print("CURRENT POINT: ");
+  Serial.println(currentPosition);
+  Serial.print("NEXT POINT: ");
+  Serial.println(nextPosition);
+  Serial.println(" ");
+
+  if (currentPosition == realNext) {
+    pathIndex = 0; //reset the path array
     String nextPoint = UpdateNext(currentPosition); //get response from the server
-    nextPosition = nextPoint.toInt(); //convert response to an integer
+    realNext = nextPoint.toInt(); //convert response to an integer
+    Serial.print("TARGET POINT: ");
+    Serial.println(realNext);
+    dijkstraAlgorithm(currentPosition, realNext); //find the shortest path using Dijkstra's algorithm
+    currentPosition = path[pathNum];
+    nextPosition = path[pathNum+1];
+
+    /* UNDO COMMENT FOR DEBUGGING
+    Serial.println(" ");
+    Serial.println("AFTER UPDATING...");
     Serial.print("PREVIOUS POINT: ");
     Serial.println(previousPosition);
+    Serial.print("CURRENT POINT: ");
+    Serial.println(currentPosition);
     Serial.print("NEXT POINT: ");
     Serial.println(nextPosition);
+    Serial.println(" ");
+    */
   }
 
-  //Determine the action based on current, next, and previous positions
+  //determine the action based on current, next, and previous positions
   switch (currentPosition) {
-
-  case 0: //DONE: Next Positions = 4, 1, 2, 3 (6)
-    Serial.printf("%d Current Position: 0\n", __LINE__);
-
-    if (twoToFour != 224) {
-      nextPosition = 4;
-      }
-
-    if (fourToTwo != 422) {
-      nextPosition = 6;
-    }
-
-    switch (nextPosition) {
-      case 4:
-        Serial.printf("%d Next Position: 4\n", __LINE__);
-        switch (previousPosition) {
-          case 4:
-            Serial.printf("%d Previous Position: 4\n", __LINE__);
-            Serial.printf("%d Action: Do a 180 and go straight to node 0\n", __LINE__);
-            action = 3;
-            break;
-          default:
-            Serial.printf("%d Action: Go straight to node 4\n", __LINE__);
-            action = 0;
-            break;
-        }
-        break;
-      case 6:
-        Serial.printf("%d Next Position: 6\n", __LINE__);
-        switch (previousPosition) {
-          case 6:
-            Serial.printf("%d Previous Position: 6\n", __LINE__);
-            Serial.printf("%d Action: Do a 180 and go straight to node 0\n", __LINE__);
-            action = 3;
-            break;
-          default:
-            Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
-            action = 0;
-            break;
-        }
-        break;
-      default:
-        //if nextPosition is 1 or 2, default to going to node 6
-        if (nextPosition == 1 || nextPosition == 2) {
-          Serial.printf("%d Next Position is 1 or 2. Defaulting to node 6.\n", __LINE__);
-    
-          afterSix = nextPosition;
-          Serial.print("ORIGINAL Next Point: ");
-          Serial.println(afterSix);
-
-          nextPosition = 6; //set nextPosition to 6
-          Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
-          action = 0;
-        } 
-        else if (nextPosition == 3) { //if nextPosition is 3, default to node 6, then 2
-          Serial.printf("%d Next Position is 3. Defaulting to node 6.\n", __LINE__);
-
-          afterSix = 2;
-          zeroToThree = nextPosition;
-          Serial.print("ORIGINAL Next Point: ");
-          Serial.println(zeroToThree);
-
-          nextPosition = 6; //set nextPosition to 6
-          Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
-          action = 0;
-        } 
-        else {
+    case 0:
+      Serial.printf("%d Current Position: 0\n", __LINE__);
+      switch (nextPosition) {
+        case 4:
+          Serial.printf("%d Next Position: 4\n", __LINE__);
+          switch (previousPosition) {
+            case 4:
+              Serial.printf("%d Previous Position: 4\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 0\n", __LINE__);
+              action = 3;
+              break;
+            default:
+              Serial.printf("%d Action: Go straight to node 4\n", __LINE__);
+              action = 0;
+              break;
+          }
+          break;
+        case 6:
+          Serial.printf("%d Next Position: 6\n", __LINE__);
+          switch (previousPosition) {
+            case 6:
+              Serial.printf("%d Previous Position: 6\n", __LINE__);
+              Serial.printf("%d Action: Do a 180 and go straight to node 0\n", __LINE__);
+              action = 3;
+              break;
+            default:
+              Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
+              action = 0;
+              break;
+          }
+          break;
+        default:
           Serial.printf("%d Invalid next position for current node 0\n", __LINE__);
-        }
-        break;
-    }
-    break;
-  //Current = 0, DONE
+          break;
+      }
+      break;
 
-    case 1: //DONE: Next Position = 2,3,4,5 (6, 7)
+    case 1:
       Serial.printf("%d Current Position: 1\n", __LINE__);
       switch (nextPosition) {
         case 6:
@@ -711,56 +798,17 @@ void switchCase() {
           }
           break;
         default:
-          //if nextPosition is 0 or 2, default to going to node 6
-          if (nextPosition == 0 || nextPosition == 2) {
-            Serial.printf("%d Next Position is 0 or 2. Defaulting to node 6.\n", __LINE__);
-      
-            afterSix = nextPosition;
-            Serial.print("ORIGINAL Next Point: ");
-            Serial.println(afterSix);
-
-            nextPosition = 6; //set nextPosition to 6
-            Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
-            action = 0;
-          } 
-          //if nextPosition is 3 or 4 OR 5, default to going to node 7
-          else if (nextPosition == 3 || nextPosition == 4 || nextPosition == 5) {
-            Serial.printf("%d Next Position is 3 or 4. Defaulting to node 7.\n", __LINE__);
-      
-            afterSeven = nextPosition;
-            Serial.print("ORIGINAL Next Point: ");
-            Serial.println(afterSeven);
-
-            nextPosition = 7; //set nextPosition to 7
-            Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
-            action = 0;
-          } 
-          else {
-            Serial.printf("%d Invalid next position for current node 0\n", __LINE__);
-          }
+          Serial.printf("%d Invalid next position for current node 1\n", __LINE__);
           break;
       }
       break;
-      //Current = 1, DONE
       
-    case 2: //DONE: Next Position = 0,1,3 (6); 4 (0,6)
+    case 2:
       Serial.printf("%d Current Position: 2\n", __LINE__);
-
-      if (zeroToThree != 333) {
-        nextPosition = 3;
-      }
-
-      if (threeToZero != 320) {
-        nextPosition = 6;
-      }
-
       switch (nextPosition) {
         case 3:
           Serial.printf("%d Next Position: 3\n", __LINE__);
           switch (previousPosition) {
-
-            zeroToThree = 333; //reset
-
             case 3:
               Serial.printf("%d Previous Position: 3\n", __LINE__);
               Serial.printf("%d Action: Do a 180 and go straight to node 3\n", __LINE__);
@@ -787,39 +835,12 @@ void switchCase() {
           }
           break;
         default:
-          //if nextPosition is 0 or 1, default to going to node 6
-          if (nextPosition == 0 || nextPosition == 1) {
-            Serial.printf("%d Next Position is 0 or 1. Defaulting to node 6.\n", __LINE__);
-      
-            afterSix = nextPosition;
-            Serial.print("ORIGINAL Next Point: ");
-            Serial.println(afterSix);
-
-            nextPosition = 6; //set nextPosition to 6
-            Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
-            action = 0;
-          } 
-          else if (nextPosition == 4) { //if nextPosition is 4, default to node 6, then 0
-            Serial.printf("%d Next Position is 4. Defaulting to node 6.\n", __LINE__);
-
-            // {2,6,0,4}
-            afterSix = 0;
-            twoToFour = nextPosition;
-            Serial.print("ORIGINAL Next Point: ");
-            Serial.println(twoToFour);
-
-            nextPosition = 6; //set nextPosition to 6
-            Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
-            action = 0;
-          } 
-          else {
-            Serial.printf("%d Invalid next position for current node 0\n", __LINE__);
-          }
+          Serial.printf("%d Invalid next position for current node 2\n", __LINE__);
           break;
       }
       break;
 
-    case 3: //DONE: Next Position = 1,2,4 (7); 0 (2,6)
+    case 3:
       Serial.printf("%d Current Position: 3\n", __LINE__);
       switch (nextPosition) {
         case 2:
@@ -851,39 +872,12 @@ void switchCase() {
           }
           break;
         default:
-          if (nextPosition == 1 || nextPosition == 4 || nextPosition == 5) {
-            Serial.printf("%d Next Position is 1 or 4. Defaulting to node 7.\n", __LINE__);
-      
-            afterSeven = nextPosition;
-            Serial.print("ORIGINAL Next Point: ");
-            Serial.println(afterSeven);
-
-            nextPosition = 7; //set nextPosition to 7
-            Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
-            action = 0;
-          }
-          else if (nextPosition == 0) { //if nextPosition is 0, default to node 2, then 6
-            Serial.printf("%d Next Position is 3. Defaulting to node 6.\n", __LINE__);
-
-            //{3,2,6,0}
-
-            afterSix = 0;
-            threeToZero = 2;
-            Serial.print("ORIGINAL Next Point: 0");
-            Serial.println(0);
-
-            nextPosition = 2; //set nextPosition to 2
-            Serial.printf("%d Action: Go straight to node 6\n", __LINE__);
-            action = 0;
-          }
-          else {
-            Serial.printf("%d Invalid next position for current node 0\n", __LINE__);
-          }
+          Serial.printf("%d Invalid next position for current node 3\n", __LINE__);
           break;
       }
       break;
 
-    case 4: //DONE: Next Position = 0,1,3 (7); 2 (0,6)
+    case 4:
       Serial.printf("%d Current Position: 4\n", __LINE__);
       switch (nextPosition) {
         case 0:
@@ -915,34 +909,7 @@ void switchCase() {
           }
           break;
         default:
-          if (nextPosition == 1 || nextPosition == 3 || nextPosition == 5) {
-            Serial.printf("%d Next Position is 1 or 3. Defaulting to node 7.\n", __LINE__);
-      
-            afterSeven = nextPosition;
-            Serial.print("ORIGINAL Next Point: ");
-            Serial.println(afterSeven);
-
-            nextPosition = 7; //set nextPosition to 7
-            Serial.printf("%d Action: Go straight to node 7\n", __LINE__);
-            action = 0;
-          } 
-          else if (nextPosition == 2) { //if nextPosition is 2, default to node 0, then 6
-            Serial.printf("%d Next Position is 2. Defaulting to node 0.\n", __LINE__);
-
-            //{4,0,6,2}
-
-            afterSix = 2;
-            fourToTwo = 0;
-            Serial.print("ORIGINAL Next Point:");
-            Serial.println(afterSix);
-
-            nextPosition = 0; //set nextPosition to 0
-            Serial.printf("%d Action: Go straight to node 0\n", __LINE__);
-            action = 0;
-          }
-          else {
-            Serial.printf("%d Invalid next position for current node 0\n", __LINE__);
-          }
+          Serial.printf("%d Invalid next position for current node 4\n", __LINE__);
           break;
       }
       break;
@@ -970,12 +937,6 @@ void switchCase() {
 
     case 6:
       Serial.printf("%d Current Position: 6\n", __LINE__);
-
-      Serial.print("ORIGINAL Next Position: ");
-      Serial.println(afterSix);
-
-      nextPosition = afterSix;
-
       switch (nextPosition) {
         case 0:
           Serial.printf("%d Next Position: 0\n", __LINE__);
@@ -1041,12 +1002,6 @@ void switchCase() {
       break;
 
     case 7:
-
-      Serial.print("ORIGINAL Next Position: ");
-      Serial.println(afterSeven);
-
-      nextPosition = afterSeven; 
-
       Serial.printf("%d Current Position: 7\n", __LINE__);
       switch (nextPosition) {
         case 1:
@@ -1127,21 +1082,21 @@ void switchCase() {
             case 5:
               Serial.printf("%d Previous Position: 5\n", __LINE__);
               Serial.printf("%d Action: Do a 180 and go straight to node 5\n", __LINE__);
-              action = 6;
+              action = 3;
               break;
             case 3:
               Serial.printf("%d Previous Position: 3\n", __LINE__);
               Serial.printf("%d Action: Turn right\n", __LINE__);
-              action = 4;
+              action = 2;
               break;
             case 4:
               Serial.printf("%d Previous Position: 4\n", __LINE__);
               Serial.printf("%d Action: Turn left\n", __LINE__);
-              action = 5;
+              action = 1;
               break;
             default:
               Serial.printf("%d Action: Go straight\n", __LINE__);
-              action = 7;
+              action = 0;
               break;
           }
           break;
@@ -1151,18 +1106,22 @@ void switchCase() {
       }
       break;
 
+
     default:
       Serial.printf("%d Invalid current position\n", __LINE__);
       break;
   }
 
+
   if (previousPosition == nextPosition || previousPosition == 100 && nextPosition == 4) {
       action = 3;
   }
 
+  previousPosition = currentPosition;
+
 }
 
-////////////////////////////  ACTIONS  ///////////////////////////////////////
+/////////////////////////////  ACTIONS  ///////////////////////////////////////
 
 void actions() {
 
@@ -1244,7 +1203,7 @@ void actions() {
     }
 }
 
-////////////////////////////  WIFI FUNCTIONS  //////////////////////////////////////
+///////////////////////////  WIFI FUNCTIONS  //////////////////////////////////////
 
 void connectToWiFi() {
   Serial.print("Connecting to WiFi: ");
@@ -1276,7 +1235,7 @@ bool connectToServer() {
   return true;
 }
 
-String UpdateNext(int position) { //previously SendMessage()
+String UpdateNext(int position) { 
 
   if (!client.connected()) {
     Serial.println("Client not connected, reconnecting...");
@@ -1296,17 +1255,17 @@ String UpdateNext(int position) { //previously SendMessage()
     client.println("Connection: keep-alive");
     client.println();
     client.println(postBody);
-    delay(500);
+    delay(10);
 
     Serial.print("Position is Valid. Sent message: ");
     Serial.println(position);
-    delay(500);
+    delay(10);
   } 
 
   String response = readResponse();
   int statusCode = getStatusCode(response);
 
-  /*
+  /* UNDO COMMENT FOR DEBUGGING
   Serial.print("Status Code: ");
   Serial.println(statusCode);
   Serial.print("Response: ");
@@ -1318,7 +1277,7 @@ String UpdateNext(int position) { //previously SendMessage()
     Serial.print("Response Body: ");
     Serial.println(responseBody);
 
-    //Check if the response ends with "finished"
+    //check if the response ends with "finished"
     if (responseBody == "Finished") {
       Serial.println("Received 'Finished' from server. Stopping Moby.");
       Stop(); //Stop the robot
@@ -1375,4 +1334,92 @@ String receiveNextPoint(int position) {
   }
   Serial.println("Error: " + response);
   return "";
+}
+
+//////////////////////////////  DIJKSTRA'S  ////////////////////////////////////////
+
+//adj matrix representing cost graph
+int nodes[NODES][NODES] = {
+    {0, INF, INF, INF, 1, INF, 1, INF}, // Node 0
+    {INF, 0, INF, INF, INF, INF, 1, 1}, // Node 1
+    {INF, INF, 0, 1, INF, INF, 1, INF}, // Node 2
+    {INF, INF, 1, 0, INF, INF, INF, 2}, // Node 3
+    {1, INF, INF, INF, 0, INF, INF, 2}, // Node 4
+    {INF, INF, INF, INF, INF, 0, INF, 1}, // Node 5
+    {1, 1, 1, INF, INF, INF, 0, INF}, // Node 6
+    {INF, 1, INF, 2, 2, 1, INF, 0}  // Node 7
+};
+
+//function to find the node with the minimum distance that hasn't been visited
+int shortestPath(int costs[], bool visited[]) {
+  int minimumCost = INF;
+  int nearestNode = -1;
+
+  for (int i = 0; i < NODES; i++) {
+    if (!visited[i] && costs[i] < minimumCost) {
+      minimumCost = costs[i];
+      nearestNode = i;
+    }
+  }
+  return nearestNode;
+}
+
+//dijkstra's algorithm to find the shortest path
+void dijkstraAlgorithm(int initial, int final) {
+
+  int costs[NODES]; //stores the shortest distance from initial to each node
+  bool visited[NODES];  //tracks which nodes have been visited
+  int previous[NODES];  //stores the previous node in the optimal path
+  pathNum = 0; 
+
+  for (int i = 0; i < NODES; i++) {
+    costs[i] = INF;
+    visited[i] = false;
+    previous[i] = -1;
+  }
+
+  costs[initial] = 0;
+
+  for (int i = 0; i < NODES; i++) {
+    int current = shortestPath(costs, visited);
+
+    if (current == -1) {
+      break; //no more nodes to process
+    }
+
+    visited[current] = true;
+
+    //updste costs
+    for (int neighbour = 0; neighbour < NODES; neighbour++) {
+      if (!visited[neighbour] && nodes[current][neighbour] != INF) {
+        int distance = costs[current] + nodes[current][neighbour];
+
+        if (distance < costs[neighbour]) {
+          costs[neighbour] = distance;
+          previous[neighbour] = current;
+        }
+      }
+    }
+  }
+
+  int current = final;
+
+  while (current != -1) {
+    path[pathIndex] = current;
+    pathIndex++;
+    current = previous[current];
+  }
+
+  //path given backwards, reverse it
+  for (int i = 0; i < pathIndex / 2; i++) {
+    int temp = path[i];
+    path[i] = path[pathIndex - 1 - i];
+    path[pathIndex - 1 - i] = temp;
+  }
+
+  //print path
+  Serial.println("The Path:");
+  for (int i = 0; i < pathIndex; i++) {
+    Serial.println(path[i]);
+  }
 }
