@@ -147,7 +147,7 @@ void setup() {
   connectToWiFi();
   connectToServer();
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect(); // Ensure ESP32 is in standalone mode
+  //WiFi.disconnect(); // Ensure ESP32 is in standalone mode
 
   //ESP-NOW
   if (esp_now_init() != ESP_OK) {
