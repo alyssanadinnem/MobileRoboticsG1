@@ -1,4 +1,5 @@
 #include <WiFi.h> 
+#include "pitches.h"
 
 //MOTOR PINS
 int motor1PWM = 37; //LEFT WHEEL: "1"
@@ -37,6 +38,13 @@ int dist = 0;
 int end = 0;
 int error1 = 0;
 int error2 = 0;
+
+//BUZZER
+int buzzer_count = 0;
+
+//LED
+const int GreenLEDPin = 1;
+const int RedLEDPin = 2;
 
 //HARDCODED ROUTE CONTROL
 /*
@@ -88,7 +96,10 @@ void TankRight(int turn_right, int turn_left);
 void GoBackwards();
 void Stop();
 void Parking();
+void Buzzer();
 void Obstacle();
+void FlashRedLED();
+void FlashGreenLED();
 
 ///////////////////////////////  SETUP()  ////////////////////////////////////
 
@@ -108,6 +119,8 @@ void setup() {
   }
 
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(GreenLEDPin, OUTPUT); 
+  pinMode(RedLEDPin, OUTPUT);
 
   //WIFI
   connectToWiFi();
@@ -121,7 +134,6 @@ void loop() {
   //get the values for Moving()
   OpticalTest();
   Distancetest();
-  delay(1);
 
   /*//print current, next and prev positions
   OpticalPrint();
@@ -176,6 +188,8 @@ void GoForwards() {
   analogWrite(motor1PWM, straight_l); //set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
   analogWrite(motor2PWM, straight_r); //set speed of motor
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void GoForwardsSlow() {
@@ -183,6 +197,8 @@ void GoForwardsSlow() {
   analogWrite(motor1PWM, slow_forward); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
   analogWrite(motor2PWM, slow_forward); // set speed of motor
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void Left(int turn_right, int turn_left) {
@@ -191,6 +207,8 @@ void Left(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 0;
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void Right(int turn_right, int turn_left) {
@@ -199,6 +217,8 @@ void Right(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 1;
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void TankLeft(int turn_right, int turn_left) {
@@ -207,6 +227,8 @@ void TankLeft(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 0;
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void TankRight(int turn_right, int turn_left) {
@@ -215,6 +237,8 @@ void TankRight(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 1;
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void GoBackwards() {
@@ -222,6 +246,8 @@ void GoBackwards() {
   analogWrite(motor1PWM, straight_l);
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, straight_r);
+  //FlashGreenLED(50, 50);
+  //FlashRedLED(50, 50);
 }
 
 void Stop() {
@@ -252,20 +278,24 @@ void Parking() {
 }
 
 void Buzzer(){
-  tone(BUZZER_PIN, 500);
-  delay(100);
-  tone(BUZZER_PIN, 500);
-  delay(100);
-  tone(BUZZER_PIN, 800);
-  delay(50);
-  tone(BUZZER_PIN, 800);
-  delay(50);
-  tone(BUZZER_PIN, 800);
-  delay(50);
-  tone(BUZZER_PIN, 1500);
-  delay(150);
-  
-  noTone(BUZZER_PIN);
+  //Serial.print("Buzzer function entered");
+  if(buzzer_count > 0 && buzzer_count <= 100){
+    tone(BUZZER_PIN, NOTE_C4);
+  }
+  else if(buzzer_count > 100 && buzzer_count <= 200){
+    tone(BUZZER_PIN, NOTE_D4);
+  }
+  else if(buzzer_count > 200 && buzzer_count <= 300){
+    tone(BUZZER_PIN, NOTE_E4);
+  }
+  else if(buzzer_count > 300 && buzzer_count <= 2000){
+    noTone(BUZZER_PIN);
+  }
+  else{
+    buzzer_count = 0;
+  }
+  delay(1);
+  buzzer_count++;
 }
 
 void Obstacle(){
@@ -292,9 +322,52 @@ void Obstacle(){
   
 }
 
+void FlashGreenLED(int onTime, int offTime) {
+  static unsigned long previousMillis = 0;
+  static bool GreenLEDState = LOW;
+  static int currentInterval = onTime; // Start with the ON duration
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= currentInterval) {
+    previousMillis = currentMillis;  // Update the timer
+    GreenLEDState = !GreenLEDState;            // Toggle LED state
+    digitalWrite(GreenLEDPin, GreenLEDState);  // Update LED state
+
+    // Set next interval based on LED state
+    if (GreenLEDState) {
+      currentInterval = onTime;  // LED is ON, wait for ON time
+    } else {
+      currentInterval = offTime; // LED is OFF, wait for OFF time
+    }
+  }
+}
+
+void FlashRedLED(int onTime, int offTime) {
+  static unsigned long previousMillis = 0;
+  static bool RedLEDState = LOW;
+  static int currentInterval = onTime; // Start with the ON duration
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= currentInterval) {
+    previousMillis = currentMillis;  // Update the timer
+    RedLEDState = !RedLEDState;            // Toggle LED state
+    digitalWrite(RedLEDPin, RedLEDState);  // Update LED state
+
+    // Set next interval based on LED state
+    if (RedLEDState) {
+      currentInterval = onTime;  // LED is ON, wait for ON time
+    } else {
+      currentInterval = offTime; // LED is OFF, wait for OFF time
+    }
+  }
+}
+
 void Moving() {
   
   Obstacle();
+  Buzzer();
 
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
@@ -315,7 +388,6 @@ void Moving() {
 
     delay(100);
     Stop();
-    Buzzer();
     Serial.println("Sending Message...");
 
     Serial.print("CURRENT POINT: ");
