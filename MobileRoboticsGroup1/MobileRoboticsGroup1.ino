@@ -75,7 +75,7 @@ int fourToTwo = 422;
 
 //WIFI DETAILS
 char ssid[] = "iot";
-char password[] = "unmercenarily56aweto"; // "kabikis75windfall"; 
+char password[] = "needlings84wheezily"; // NEW esp wifi 
 WiFiClient client;
 
 //SERVER DETAILS
@@ -86,8 +86,8 @@ const char teamID[] = "afty6723";
 //POSITIONS
 int destination;
 
-// MAC address = 48:27:e2:15:50:14
-uint8_t broadcastAddress[] = {0x48, 0x27, 0xE2, 0x15, 0x50, 0x14}; 
+// MAC address = 48:ca:43:06:13:fc
+uint8_t broadcastAddress[] = {0x48, 0xCA, 0x43, 0x06, 0x13, 0xFC}; 
 
 esp_now_peer_info_t peerInfo;
 
@@ -113,7 +113,7 @@ int getDistance();
 ///////////////////////////////  SETUP()  ////////////////////////////////////
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   //MOTOR
   pinMode(motor1PWM, OUTPUT);
@@ -143,6 +143,9 @@ void setup() {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
+  else {
+    Serial.println("esp INITIALIZED");
+  }
 
   // Initialize peer info
   memset(&peerInfo, 0, sizeof(peerInfo));
@@ -157,8 +160,9 @@ void setup() {
   if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
-  } else {
-    Serial.println("Peer added successfully");
+  }
+  else {
+    Serial.println("PEER added");
   }
 
   // Register callback
