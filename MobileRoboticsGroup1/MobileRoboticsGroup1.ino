@@ -1,7 +1,17 @@
 #include <WiFi.h> 
 #include <Arduino.h>
 #include <climits>
+#include <ESP32Servo.h>
+#include <esp_now.h>
 #include "pitches.h"
+
+// Define constants for Ultrasonic Sensor pins and motor control
+#define ULTRASONIC_TRIG_PIN 10  // Pin for triggering the ultrasonic pulse
+#define ULTRASONIC_ECHO_PIN 11  // Pin for receiving the ultrasonic echo
+#define SERVO_PIN 12            // Pin to which the servo motor is attached
+#define SOUND_SPEED 0.034       // Speed of sound in cm per microsecond (340 m/s)
+
+#define BUFSIZE 512             //BUFFER SIZE FOR HTTPS RESPONSE
 
 //MOTOR PINS
 int motor1PWM = 37; //LEFT WHEEL: "1"
@@ -9,6 +19,26 @@ int motor1Phase = 38;
 int motor2PWM = 39; //RIGHT WHEEL: "2"
 int motor2Phase = 20;
 int BUZZER_PIN = 18; //Buzzer
+
+//ANGLES
+int previous_angle = 14;
+int current_angle = 15;
+bool increasing = true;  // Flag to track direction
+
+//SERVO VARIABLES
+long timeInterval;
+int distance;
+Servo motorControl;
+bool LoopOnce = 0;
+
+// Structure for ESP-NOW
+typedef struct struct_message {
+  int angle;
+  int distance;
+} struct_message;
+
+// Create an instance
+struct_message distanceAngle;
 
 //OPTICAL SENSOR 
 int AnalogueValue[6] = {0,0,0,0,0,0};
@@ -38,6 +68,7 @@ int slow_forward = 80*multiplier;
 //DISTANCE
 int dist = 0;
 int end = 0;
+int error = 0;
 int error1 = 0;
 int error2 = 0;
 
@@ -48,17 +79,6 @@ int buzzer_count = 0;
 const int GreenLEDPin = 1;
 const int RedLEDPin = 2;
 
-//HARDCODED ROUTE CONTROL
-/*
-int route[] = {0,6,1,7,3};
-int routeCount = sizeof(route)/sizeof(route[0]);
-int previousPosition = 4;
-int currentPosition = 0;
-int nextPosition = 6;
-int action = 0;
-int a = 0;
-*/
-
 //ROUTE CONTROLs 
 int previousPosition = 4;
 int currentPosition = 0; //any number so it indicates no next point yet
@@ -67,12 +87,6 @@ int realNext;
 int action = 0;
 int afterSix = 666; //any number
 int afterSeven = 777;
-/*
-//int zeroToThree = 333;
-//int threeToZero = 320;
-//int twoToFour = 224;
-//int fourToTwo = 422;
-*/
 
 //DIJKSTRA ALGORITHM
 #define INF 99999 //unreachable nodes
@@ -91,11 +105,19 @@ char server[] = "3.250.38.184";
 int port = 8000;
 const char teamID[] = "afty6723";
 
-//BUFFER SIZE FOR HTTPS RESPONSE
-#define BUFSIZE 512
-
 //POSITIONS
 int destination;
+
+// MAC address = 48:ca:43:06:13:fc
+uint8_t broadcastAddress[] = {0x48, 0xCA, 0x43, 0x06, 0x13, 0xFC}; 
+
+esp_now_peer_info_t peerInfo;
+
+// Callback for ESP-NOW
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
 
 //FUNCTION DECLARATIONS
 void OpticalTest();
@@ -108,6 +130,7 @@ void TankRight(int turn_right, int turn_left);
 void GoBackwards();
 void Stop();
 void Parking();
+int getDistance();
 void Buzzer();
 void Obstacle();
 void FlashRedLED();
@@ -124,12 +147,18 @@ void setup() {
   pinMode(motor1Phase, OUTPUT);
   pinMode(motor2Phase, OUTPUT);
 
+  //SERVO
+  pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
+  pinMode(ULTRASONIC_ECHO_PIN, INPUT);
+  motorControl.attach(SERVO_PIN);
+
   //OPTICAL SENSOR
   int i;
   for(i=0; i<5; i++) {
     pinMode(AnaloguePin[i], INPUT);
   }
 
+  //BUZZER
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(GreenLEDPin, OUTPUT); 
   pinMode(RedLEDPin, OUTPUT);
@@ -137,6 +166,35 @@ void setup() {
   //WIFI
   connectToWiFi();
   connectToServer();
+  WiFi.mode(WIFI_STA);
+  //WiFi.disconnect(); // Ensure ESP32 is in standalone mode
+
+  //ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  else {
+    Serial.println("esp INITIALIZED");
+  }
+
+  //PEER INITIALISE
+  memset(&peerInfo, 0, sizeof(peerInfo));
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+
+  //ADD PEER
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  }
+  else {
+    Serial.println("PEER added");
+  }
+
+  //CALLBACK
+  esp_now_register_send_cb(OnDataSent);
 }
 
 ////////////////////////////////  LOOP()  ////////////////////////////////////
@@ -146,13 +204,15 @@ void loop() {
   //get the values for Moving()
   OpticalTest();
   Distancetest();
-
+  
   // UNDO COMMENT FOR DEBUGGING
   //OpticalPrint();
   //DistancePrint();
-  
+
   Moving();
+  ServoMovement();
   delay(1);
+  LoopOnce = 0;
 }
 
 ///////////////////////////////  TESTS  ////////////////////////////////////////
@@ -221,8 +281,6 @@ void GoForwards() {
   analogWrite(motor1PWM, straight_l); //set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
   analogWrite(motor2PWM, straight_r); //set speed of motor
-  //FlashGreenLED(50, 50);
-  //FlashRedLED(50, 50);
 }
 
 void GoForwardsSlow() {
@@ -230,8 +288,6 @@ void GoForwardsSlow() {
   analogWrite(motor1PWM, slow_forward); // set speed of motor
   digitalWrite(motor2Phase, HIGH); //forward
   analogWrite(motor2PWM, slow_forward); // set speed of motor
-  //FlashGreenLED(50, 50);
-  //FlashRedLED(50, 50);
 }
 
 void Left(int turn_right, int turn_left) {
@@ -240,8 +296,6 @@ void Left(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 0;
-  //FlashGreenLED(50, 50);
-  //FlashRedLED(50, 50);
 }
 
 void Right(int turn_right, int turn_left) {
@@ -250,8 +304,6 @@ void Right(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 1;
-  //FlashGreenLED(50, 50);
-  //FlashRedLED(50, 50);
 }
 
 void TankLeft(int turn_right, int turn_left) {
@@ -260,8 +312,6 @@ void TankLeft(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 0;
-  //FlashGreenLED(50, 50);
-  //FlashRedLED(50, 50);
 }
 
 void TankRight(int turn_right, int turn_left) {
@@ -270,8 +320,6 @@ void TankRight(int turn_right, int turn_left) {
   digitalWrite(motor2Phase, HIGH);
   analogWrite(motor2PWM, turn_left);
   left_or_right = 1;
-  //FlashGreenLED(50, 50);
-  //FlashRedLED(50, 50);
 }
 
 void GoBackwards() {
@@ -279,8 +327,6 @@ void GoBackwards() {
   analogWrite(motor1PWM, straight_l);
   digitalWrite(motor2Phase, LOW);
   analogWrite(motor2PWM, straight_r);
-  //FlashGreenLED(50, 50);
-  //FlashRedLED(50, 50);
 }
 
 void Stop() {
@@ -310,99 +356,11 @@ void Parking() {
   }
 }
 
-void Buzzer(){
-  //Serial.print("Buzzer function entered");
-  if(buzzer_count > 0 && buzzer_count <= 100){
-    tone(BUZZER_PIN, NOTE_C4);
-  }
-  else if(buzzer_count > 100 && buzzer_count <= 200){
-    tone(BUZZER_PIN, NOTE_D4);
-  }
-  else if(buzzer_count > 200 && buzzer_count <= 300){
-    tone(BUZZER_PIN, NOTE_E4);
-  }
-  else if(buzzer_count > 300 && buzzer_count <= 2000){
-    noTone(BUZZER_PIN);
-  }
-  else{
-    buzzer_count = 0;
-  }
-  delay(1);
-  buzzer_count++;
-}
-
-//go back to previous node
-void Obstacle(){
-  Distancetest();
-  if(error2 > 10){
-    TankLeft(tank_turn, tank_turn);
-    left_or_right=0;
-    delay(1000);
-    OpticalTest();
-    while(AnalogueValue[2] >= WhiteThreshold){
-      OpticalTest();
-      TankLeft(tank_turn, tank_turn);
-    }
-    error2 = 0;
-    //Serial.print("Obstacle detected");
-    //Serial.println();
-    nextPosition = previousPosition;
-  }
-  else if(dist > 1500 && dist < 2000) {
-    error2++;
-    //Serial.print("Error increased");
-    //Serial.println();
-  }
-  
-}
-
-void FlashGreenLED(int onTime, int offTime) {
-  static unsigned long previousMillis = 0;
-  static bool GreenLEDState = LOW;
-  static int currentInterval = onTime; // Start with the ON duration
-
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= currentInterval) {
-    previousMillis = currentMillis;  // Update the timer
-    GreenLEDState = !GreenLEDState;            // Toggle LED state
-    digitalWrite(GreenLEDPin, GreenLEDState);  // Update LED state
-
-    // Set next interval based on LED state
-    if (GreenLEDState) {
-      currentInterval = onTime;  // LED is ON, wait for ON time
-    } else {
-      currentInterval = offTime; // LED is OFF, wait for OFF time
-    }
-  }
-}
-
-void FlashRedLED(int onTime, int offTime) {
-  static unsigned long previousMillis = 0;
-  static bool RedLEDState = LOW;
-  static int currentInterval = onTime; // Start with the ON duration
-
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= currentInterval) {
-    previousMillis = currentMillis;  // Update the timer
-    RedLEDState = !RedLEDState;            // Toggle LED state
-    digitalWrite(RedLEDPin, RedLEDState);  // Update LED state
-
-    // Set next interval based on LED state
-    if (RedLEDState) {
-      currentInterval = onTime;  // LED is ON, wait for ON time
-    } else {
-      currentInterval = offTime; // LED is OFF, wait for OFF time
-    }
-  }
-}
-
 void Moving() {
   
-  Obstacle();
+  //Obstacle();
   Buzzer();
-
+  
   if (BBWBB() || WBBBW() || BWWWB()) {
     GoForwards();
   }
@@ -453,9 +411,213 @@ void Moving() {
     }
   }
   else {
-
     Stop();
   }  
+}
+
+//////////////////////////////  BUZZER  /////////////////////////////////////
+
+void Buzzer(){
+  //Serial.print("Buzzer function entered");
+  if(buzzer_count > 0 && buzzer_count <= 100){
+    tone(BUZZER_PIN, NOTE_C4);
+  }
+  else if(buzzer_count > 100 && buzzer_count <= 200){
+    tone(BUZZER_PIN, NOTE_D4);
+  }
+  else if(buzzer_count > 200 && buzzer_count <= 300){
+    tone(BUZZER_PIN, NOTE_E4);
+  }
+  else if(buzzer_count > 300 && buzzer_count <= 2000){
+    noTone(BUZZER_PIN);
+  }
+  else{
+    buzzer_count = 0;
+  }
+  delay(1);
+  buzzer_count++;
+}
+
+//go back to previous node
+void Obstacle(){
+  Distancetest();
+  if(error2 > 10){
+    TankLeft(tank_turn, tank_turn);
+    left_or_right=0;
+    delay(1000);
+    OpticalTest();
+    while(AnalogueValue[2] >= WhiteThreshold){
+      OpticalTest();
+      TankLeft(tank_turn, tank_turn);
+    }
+    error2 = 0;
+    //Serial.print("Obstacle detected");
+    //Serial.println();
+    nextPosition = previousPosition;
+  }
+  else if(dist > 1500 && dist < 2000) {
+    error2++;
+    //Serial.print("Error increased");
+    //Serial.println();
+  }
+  
+}
+
+//////////////////////////////  LED LIGHTS  //////////////////////////////////
+
+void FlashGreenLED(int onTime, int offTime) {
+  static unsigned long previousMillis = 0;
+  static bool GreenLEDState = LOW;
+  static int currentInterval = onTime; // Start with the ON duration
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= currentInterval) {
+    previousMillis = currentMillis;  // Update the timer
+    GreenLEDState = !GreenLEDState;            // Toggle LED state
+    digitalWrite(GreenLEDPin, GreenLEDState);  // Update LED state
+
+    // Set next interval based on LED state
+    if (GreenLEDState) {
+      currentInterval = onTime;  // LED is ON, wait for ON time
+    } else {
+      currentInterval = offTime; // LED is OFF, wait for OFF time
+    }
+  }
+}
+
+void FlashRedLED(int onTime, int offTime) {
+  static unsigned long previousMillis = 0;
+  static bool RedLEDState = LOW;
+  static int currentInterval = onTime; // Start with the ON duration
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= currentInterval) {
+    previousMillis = currentMillis;  // Update the timer
+    RedLEDState = !RedLEDState;            // Toggle LED state
+    digitalWrite(RedLEDPin, RedLEDState);  // Update LED state
+
+    // Set next interval based on LED state
+    if (RedLEDState) {
+      currentInterval = onTime;  // LED is ON, wait for ON time
+    } else {
+      currentInterval = offTime; // LED is OFF, wait for OFF time
+    }
+  }
+}
+
+/////////////////////////  SERVO AND ESP NOW  //////////////////////////////
+
+/*void ServoMovement(){
+  if(previous_angle < current_angle){
+    go to current_angle
+    current_angle++;
+    previous_angle++;
+  }
+  else{
+    go to current_angle
+    current_angle--;
+  previous_angle--;
+  }
+  delay(1);
+}*/
+
+void ServoMovement() {
+  // Move servo to the current angle
+  motorControl.write(current_angle);
+  distance = getDistance();  // Measure distance
+
+  // Set values to send
+  distanceAngle.angle = current_angle;
+  distanceAngle.distance = distance;
+  esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+
+  // Print for debugging
+  Serial.print("Angle, Distance ");
+  Serial.print(distanceAngle.angle);
+  Serial.print(",");
+  Serial.print(distanceAngle.distance);
+  Serial.print(".");
+
+  // Update previous angle
+  previous_angle = current_angle;
+
+  // Change the angle by 1 degree
+  if (increasing) {
+    current_angle++;
+    if (current_angle >= 165) {
+      increasing = false;  // Change direction at max
+    }
+  } else {
+    current_angle--;
+    if (current_angle <= 15) {
+      increasing = true;  // Change direction at min
+    }
+  }
+}
+
+/*
+void ServoMovement(){
+  // Sweep servo from 15 to 165 degrees and measure distance
+  while (LoopOnce == 0) {
+    for (int angle = 15; angle <= 165; angle++) {
+      motorControl.write(angle);  // Rotate servo to current angle
+      delay(1);                  // Wait for servo to reach position
+      distance = getDistance(); // Get distance from ultrasonic sensor
+    
+      // Set values to send
+      distanceAngle.angle = angle; 
+      distanceAngle.distance = distance;
+      esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+      esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+
+      Serial.print(distanceAngle.angle);
+      Serial.print(",");
+      Serial.print(distanceAngle.distance);
+      Serial.println(".");
+    }
+
+    // Sweep servo back from 165 to 15 degrees
+    for (int angle = 165; angle >= 15; angle--) {
+      motorControl.write(angle);
+      delay(1);
+      distance = getDistance();
+    
+      // Set values to send
+      distanceAngle.angle = angle; 
+      distanceAngle.distance = distance;
+      esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+      esp_now_send(broadcastAddress, (uint8_t *)&distanceAngle, sizeof(distanceAngle));
+
+      Serial.print(distanceAngle.angle);
+      Serial.print(",");
+      Serial.print(distanceAngle.distance);
+      Serial.println(".");
+
+      if (angle == 15){
+        LoopOnce = 1;
+      }
+    }
+  }
+  delay(1);
+}
+
+*/
+
+// Get distance function
+int getDistance() {
+  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
+  delay(1);
+  digitalWrite(ULTRASONIC_TRIG_PIN, HIGH);
+  delay(1);
+  digitalWrite(ULTRASONIC_TRIG_PIN, LOW);
+  
+  timeInterval = pulseIn(ULTRASONIC_ECHO_PIN, HIGH);
+  distance = timeInterval * SOUND_SPEED / 2;
+  delay(1);
+
+  return distance;
 }
 
 ////////////////////////////////  CASES  /////////////////////////////////////
@@ -653,7 +815,7 @@ void switchCase() {
     currentPosition = path[pathNum];
     nextPosition = path[pathNum+1];
 
-     //UNDO COMMENT FOR DEBUGGING
+    /* UNDO COMMENT FOR DEBUGGING
     Serial.println(" ");
     Serial.println("AFTER UPDATING...");
     Serial.print("PREVIOUS POINT: ");
@@ -663,7 +825,7 @@ void switchCase() {
     Serial.print("NEXT POINT: ");
     Serial.println(nextPosition);
     Serial.println(" ");
-    
+    */
   }
 
   //determine the action based on current, next, and previous positions
